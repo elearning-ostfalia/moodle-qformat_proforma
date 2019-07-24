@@ -26,14 +26,8 @@
 $string['pluginname'] = 'ProFormA format';
 $string['pluginname_help'] = 'Programming Task for Formative Assessment (zip file).';
 $string['pluginname_link'] = 'qformat/proforma';
-$string['noproformafile'] = 'Unable to find any proforma file in the zip archive. Please make sure your archive contains the task.xml file at root level.';
-//$string['templatefilename'] = 'Template';
-//$string['repository'] = 'Repository';
-//$string['repository_desc'] = 'URI of Repository';
-//$string['repository_heading'] = 'Repository';
-//$string['path'] = 'Default Path in Repository';
-//$string['path_desc'] = 'Default Path in Repository';
+$string['noproformafile'] =
+        'Unable to find any proforma file in the zip archive. Please make sure your archive contains the task.xml file at root level.';
 $string['filenamenotunique'] = 'Filename for attachment is not unique';
 $string['importwarningquestion'] = 'Filename for attachment is not unique';
-
 

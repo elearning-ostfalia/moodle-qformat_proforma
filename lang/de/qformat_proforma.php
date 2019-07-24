@@ -26,9 +26,6 @@
 $string['pluginname'] = 'ProFormA-Format';
 $string['pluginname_help'] = 'Programmieraufgabe im ProFormA-Aufgabenformat';
 $string['noproformafile'] = 'keine ProFormA-Aufgabendatei (task.xml) im Zip-Archiv gefunden.';
-//$string['repository_desc'] = 'URI des Repository';
-//$string['path'] = 'Standard-Pfad im Repository';
-//$string['path_desc'] = $string['path'];
 $string['filenamenotunique'] = 'Dateiname einer angehängten Datei ist nicht eindeutig.';
 
 
