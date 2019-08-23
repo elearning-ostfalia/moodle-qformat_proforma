@@ -30,4 +30,5 @@ $string['noproformafile'] =
         'Unable to find any proforma file in the zip archive. Please make sure your archive contains the task.xml file at root level.';
 $string['filenamenotunique'] = 'Filename for attachment is not unique';
 $string['importwarningquestion'] = 'Filename for attachment is not unique';
+$string['missingfileintask'] = 'File \'{$a}\' is referenced in task but is not attached';
 

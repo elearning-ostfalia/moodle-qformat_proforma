@@ -161,7 +161,9 @@ class qformat_proforma extends qformat_default {
             $this->tempdir = '';
             global $OUTPUT;
             // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
-            echo $OUTPUT->notification($e->getMessage());
+            // echo $OUTPUT->notification($e->getMessage());
+            $this->error($e->getMessage());
+
             return false;
         }
     }
@@ -227,7 +229,8 @@ class qformat_proforma extends qformat_default {
         catch(Exception $e) {
             global $OUTPUT;
             // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
-            echo $OUTPUT->notification($e->getMessage());
+            //echo $OUTPUT->notification($e->getMessage());
+            $this->error($e->getMessage());
         }
         finally {
             $this->tempdir = $basetemp;
@@ -243,7 +246,7 @@ class qformat_proforma extends qformat_default {
      * @param $lines
      * @return array|bool
      */
-    protected function readquestions($filearray) {
+    public function readquestions($filearray) { // made public for unit tests
         $questions = array();
         foreach($filearray as $taskfile) {
             $qo = $this->read_task_xml($taskfile[0], $taskfile[1]);
@@ -300,6 +303,9 @@ class qformat_proforma extends qformat_default {
             /*$storedfile = */
             $fs->create_file_from_string($fileinfo, $content);
         } else {
+            if (!is_readable($this->tempdir . '/' . $filename)) {
+                throw new moodle_exception(get_string('missingfileintask', 'qformat_proforma', $filename));
+            }
             $filerecord = array(
                     'contextid' => context_user::instance($USER->id)->id,
                     'component' => 'user',
