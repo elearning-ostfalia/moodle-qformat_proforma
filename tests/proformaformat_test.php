@@ -49,74 +49,73 @@ class qformat_proforma_test extends question_testcase {
         $this->setAdminUser();
     }
 
-    public function test_import_java_task() {
+    public function test_import_java_task_1() {
         $this->prepare_test();
         // create proforma importer
         $importer = new qformat_proforma();
 
-        $result = $importer->readdata(__DIR__ . '/fixtures/sampleJavaTask.zip');
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaTask1.zip');
+        $this->assertNotEquals(false, $result);
         $this->assertEquals(1, count($result));
         $questions = $importer->readquestions($result);
+        $this->assertEquals(1, count($questions));
 
-        $expectedq = (object) array(
-            'name' => 'Sample Java Task',
-            'questiontext' => '<b>Task</b> Description ',
-            'questiontextformat' => FORMAT_HTML,
-            'generalfeedback' => '',
-            'generalfeedbackformat' => FORMAT_MOODLE,
-            'qtype' => 'proforma',
-            'defaultmark' => 1,
-            'penalty' => 0.1,
-            'length' => 1,
-        );
+        $this->assert_java_task_1($questions[0]);
+    }
+
+    public function test_import_java_task_2() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaTask2.zip');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $this->assertEquals(1, count($questions));
+
+        $this->assert_java_task_2($questions[0]);
+    }
+
+
+    public function test_import_java_archive() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaArchive.zip');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(2, count($result));
+        $questions = $importer->readquestions($result);
+        $this->assertEquals(2, count($questions));
+
+        $this->assert_java_task_1($questions[1]);
+        $this->assert_java_task_2($questions[0]);
+    }
+
+
+    public function test_import_java_archive_with_wrong_task() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/archiveWithWrongTask.zip');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(2, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        // Check that there were some expected errors.
+        $this->assertContains('Error importing question', $output);
+        $this->assertContains('File \'info.txt\' is referenced in task but is not attached', $output);
 
         $this->assertEquals(1, count($questions));
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $questions[0]);
-        $this->assertEquals('proforma', $questions[0]->qtype);
 
-        $this->assertEquals('46d4e650-8e98-4736-b0d1-d1aa2c64ff82', $questions[0]->uuid);
-        $this->assertEquals('java', $questions[0]->programminglanguage);
-
-        $this->assertEquals('package reverse_task;
-
-public class MyString 
-{
-	static public String flip( String aString)
-	{	
-		StringBuilder sb = new StringBuilder();
-		
-		for (int i = 0; i < aString.length(); i++)
-			sb.append(aString.charAt(aString.length()-1-i));
-
-		return sb.toString();
-	}
-}
-'
-                , $questions[0]->modelsolution);
-        $this->assertEquals('reverse_task/MyString.java', $questions[0]->responsefilename);
-        $this->assertEquals('class MyClass {
-    
-    // write your code here...
-    
-}',
-                $questions[0]->responsetemplate);
-        $this->assertEquals('reverse_task/MyString.java', $questions[0]->responsefilename);
-        $this->assertEquals('reverse_task/MyString.java', $questions[0]->responsefilename);
-        $this->assertEquals('info.txt', $questions[0]->downloads);
-        $this->assertEquals('code.txt', $questions[0]->templates);
-        $this->assertEquals('reverse_task/MyString.java', $questions[0]->modelsolfiles);
-        $this->assertEquals('<grading-hints><root function="sum"><test-ref weight="0" ref="1"><title>Compiler Test</title><test-type>java-compilation</test-type><description>compile code without errors?</description></test-ref><test-ref weight="2" ref="2"><title>Junit Test MyStringTest</title><test-type>unittest</test-type><description>simple JUNIT test</description></test-ref></root></grading-hints>',
-                $questions[0]->gradinghints);
-        $this->assertEquals(2, $questions[0]->aggregationstrategy);
-        $this->assertEquals(10240, $questions[0]->maxbytes);
-        $this->assertEquals('.java', $questions[0]->filetypes);
-        $this->assertEquals('editor', $questions[0]->responseformat);
-        $this->assertEquals('15', $questions[0]->responsefieldlines);
-        $this->assertEquals(0, $questions[0]->attachments);
-        $this->assertEquals(1, $questions[0]->taskstorage);
-        $this->assertEquals('2.0', $questions[0]->proformaversion);
-        // todo: test files in file storage
+        $this->assert_java_task_1($questions[0]);
     }
+
 
     public function test_read_missing_attached_file() {
         $this->prepare_test();
@@ -136,6 +135,134 @@ public class MyString
 
         // No question  have been imported.
         $this->assertEquals(false, $questions);
+    }
+
+    /**
+     * @param $questions
+     */
+    protected function assert_java_task_1($question) {
+
+
+        $expectedq = (object) array(
+                'questiontextformat' => FORMAT_HTML,
+                'generalfeedback' => '',
+                'generalfeedbackformat' => FORMAT_MOODLE,
+                'qtype' => 'proforma',
+                'defaultmark' => 1,
+                'penalty' => 0.1,
+                'length' => 1,
+        );
+
+        $this->assert(new question_check_specified_fields_expectation($expectedq), $question);
+        $this->assertEquals($question->name, 'Sample Java Task');
+        $this->assertEquals($question->questiontext, '<b>Task</b> Description ');
+        $this->assertEquals($question->qtype, 'proforma');
+
+        $this->assertEquals($question->uuid, '46d4e650-8e98-4736-b0d1-d1aa2c64ff82');
+        $this->assertEquals($question->programminglanguage, 'java');
+
+        $this->assertEquals('package reverse_task;
+
+public class MyString 
+{
+	static public String flip( String aString)
+	{	
+		StringBuilder sb = new StringBuilder();
+		
+		for (int i = 0; i < aString.length(); i++)
+			sb.append(aString.charAt(aString.length()-1-i));
+
+		return sb.toString();
+	}
+}
+'
+                , $question->modelsolution);
+        $this->assertEquals('reverse_task/MyString.java', $question->responsefilename);
+        $this->assertEquals('class MyClass {
+    
+    // write your code here...
+    
+}',
+                $question->responsetemplate);
+        $this->assertEquals('reverse_task/MyString.java', $question->responsefilename);
+        $this->assertEquals('info.txt', $question->downloads);
+        $this->assertEquals('code.txt', $question->templates);
+        $this->assertEquals('reverse_task/MyString.java', $question->modelsolfiles);
+        $this->assertEquals('<grading-hints><root function="sum"><test-ref weight="0" ref="1"><title>Compiler Test</title><test-type>java-compilation</test-type><description>compile code without errors?</description></test-ref><test-ref weight="2" ref="2"><title>Junit Test MyStringTest</title><test-type>unittest</test-type><description>simple JUNIT test</description></test-ref></root></grading-hints>',
+                $question->gradinghints);
+        $this->assertEquals(2, $question->aggregationstrategy);
+        $this->assertEquals(10240, $question->maxbytes);
+        $this->assertEquals('.java', $question->filetypes);
+        $this->assertEquals('editor', $question->responseformat);
+        $this->assertEquals('15', $question->responsefieldlines);
+        $this->assertEquals(0, $question->attachments);
+        $this->assertEquals(1, $question->taskstorage);
+        $this->assertEquals('2.0', $question->proformaversion);
+        // todo: test files in file storage
+    }
+
+    /**
+     * @param $questions
+     */
+    protected function assert_java_task_2($question) {
+        $expectedq = (object) array(
+                'questiontextformat' => FORMAT_HTML,
+                'generalfeedback' => '',
+                'generalfeedbackformat' => FORMAT_MOODLE,
+                'qtype' => 'proforma',
+                'defaultmark' => 1,
+                'penalty' => 0.1,
+                'length' => 1,
+        );
+
+        $this->assert(new question_check_specified_fields_expectation($expectedq), $question);
+        $this->assertEquals($question->name, 'is palindrom');
+        $this->assertEquals($question->questiontext, 'checks whether a given string is a palindrom');
+        $this->assertEquals($question->qtype, 'proforma');
+
+        $this->assertEquals($question->uuid, 'c3c1a32a-b33b-4034-bf6f-6fbfe1efe3fc');
+        $this->assertEquals($question->programminglanguage, 'java');
+
+        $this->assertEquals('package de.ostfalia.zell.isPalindromTask;
+
+public class MyString {
+	
+	static public Boolean isPalindrom(String aString) 
+	{
+		String reverse = new StringBuilder(aString).reverse().toString();
+
+		return (aString.equalsIgnoreCase(reverse));
+	}
+}
+'
+                , $question->modelsolution);
+        $this->assertEquals('de/ostfalia/zell/isPalindromTask/MyString.java', $question->responsefilename);
+        $this->assertEquals('package de.ostfalia.zell.isPalindromTask;
+
+public class MyString {
+	
+	static public Boolean isPalindrom(String aString) 
+	{
+		// ...
+	}
+}
+',
+                $question->responsetemplate);
+        $this->assertEquals('de/ostfalia/zell/isPalindromTask/MyString.java', $question->responsefilename);
+        $this->assertEquals('', $question->downloads);
+        $this->assertEquals('code.txt', $question->templates);
+        $this->assertEquals('de/ostfalia/zell/isPalindromTask/MyString.java', $question->modelsolfiles);
+        $this->assertEquals('<grading-hints><root function="sum"><test-ref weight="0" ref="1"><title>Compiler Test</title><test-type>java-compilation</test-type></test-ref><test-ref weight="1" ref="2"><title>Junit Test ostfalia/zell/isPalindromTask/PalindromTest</title><test-type>unittest</test-type></test-ref></root></grading-hints>',
+                $question->gradinghints);
+        $this->assertEquals(2, $question->aggregationstrategy);
+        $this->assertEquals(0, $question->maxbytes);
+        $this->assertEquals('', $question->filetypes);
+        $this->assertEquals('editor', $question->responseformat);
+        $this->assertEquals('15', $question->responsefieldlines);
+        $this->assertEquals(0, $question->attachments);
+        $this->assertEquals(1, $question->taskstorage);
+        $this->assertEquals('2.0', $question->proformaversion);
+        // todo: test files in file storage
     }
 }
 

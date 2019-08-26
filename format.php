@@ -44,7 +44,7 @@ class qformat_proforma extends qformat_default {
 
     public function provide_import() {
         global $CFG;
-        // disable import if the ProFormA question type does not exist
+        // Disable import if the ProFormA question type does not exist
         // return file_exists($CFG->dirroot.'/question/type/proforma/version.php');
         return true;
     }
@@ -76,10 +76,10 @@ class qformat_proforma extends qformat_default {
      * @return array|bool
      * - array of arrays
          1. subfolder ('.' in case of exactely one ProFormA task)
-	 2. task.xml lines
+         2. task.xml lines
      */
     public function readdata($filename) {
-        // create temporary folder
+        // Create temporary folder.
         $uniquecode = time();
         $this->tempdir = make_temp_directory('proforma_import/' . $uniquecode);
 
@@ -89,19 +89,18 @@ class qformat_proforma extends qformat_default {
             }
             $this->taskfilename = pathinfo($filename, PATHINFO_BASENAME);
 
-            // create copy for extraction and extract
-            // overhead! todo use original file
+            // Create copy for extraction and extract.
+            // Overhead! todo use original file
             if (!copy($filename, $this->tempdir . '/' . $this->taskfilename)) {
                 throw new moodle_exception(get_string('cannotcopybackup', 'question'));
             }
 
-
-            // extract zip content to $this->tempdir
+            // Extract zip content to $this->tempdir.
             $packer = get_file_packer('application/zip');
             if (!$packer->extract_to_pathname($this->tempdir . '/' . $this->taskfilename, $this->tempdir)) {
                 throw new moodle_exception(get_string('cannotunzip', 'question'));
             }
-            // store task.xml in array $filenames if found
+            // Store task.xml in array $filenames if found
             // (all other names are discarded)
             $taskfiles = array();
             $zipfiles = array();
@@ -125,10 +124,10 @@ class qformat_proforma extends qformat_default {
             switch(count($taskfiles)) {
                 case 0:
                     if (count($otherfiles) > 0 or count($zipfiles) == 0) {
-                        // no proforma file
+                        // No proforma file.
                         throw new moodle_exception(get_string('noproformafile', 'qformat_proforma'));
                     } else {
-                        // list of zip files
+                        // List of zip files.
                         foreach ($zipfiles as $zipfile) {
                             $pathname = pathinfo($zipfile,  PATHINFO_FILENAME);
                             if (!$packer->extract_to_pathname($this->tempdir . '/' . $zipfile, $this->tempdir . '/'. $pathname)) {
@@ -146,16 +145,14 @@ class qformat_proforma extends qformat_default {
                     }
                     break;
                 case 1:
-                    // return full path of task.xml file
+                    // Return full path of task.xml file.
                     $filedata = array('.', file($this->tempdir . '/' . $taskfiles[0]));
                     $result[] = $filedata;
                     return $result;
                 default:
-                    // should be unreachable code
+                    // Should be unreachable code.
                     throw new moodle_exception('unreachable code: more than one task.xml found in zip file');
             }
-
-
         } catch (Exception $e) {
             fulldelete($this->tempdir);
             $this->tempdir = '';
@@ -169,7 +166,6 @@ class qformat_proforma extends qformat_default {
     }
 
     protected function check_proforma_version($lines) {
-        //debugging($lines);
         $xmldoc = new DOMDocument;
         if (!$xmldoc->loadXML($lines)) {
             debugging('invalid XML in proforma file');
@@ -225,14 +221,12 @@ class qformat_proforma extends qformat_default {
             if ($qo) {
                 $questions[] = $qo;
             }
-        }
-        catch(Exception $e) {
+        } catch (Exception $e) {
             global $OUTPUT;
             // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
-            //echo $OUTPUT->notification($e->getMessage());
+            // echo $OUTPUT->notification($e->getMessage());
             $this->error($e->getMessage());
-        }
-        finally {
+        } finally {
             $this->tempdir = $basetemp;
             $this->taskfilename = $oldbasename;
         }
@@ -243,12 +237,13 @@ class qformat_proforma extends qformat_default {
     /**
      * plugin interface function:
      * return all questions from uploaded file
+     * (function is made public for test access)
      * @param $lines
      * @return array|bool
      */
-    public function readquestions($filearray) { // made public for unit tests
+    public function readquestions($filearray) {
         $questions = array();
-        foreach($filearray as $taskfile) {
+        foreach ($filearray as $taskfile) {
             $qo = $this->read_task_xml($taskfile[0], $taskfile[1]);
             if ($qo) {
                 $questions = array_merge($questions, $qo);
