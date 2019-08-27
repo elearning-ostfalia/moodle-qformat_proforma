@@ -413,8 +413,6 @@ class qformat_proforma extends qformat_default {
         }
 
         if (in_array($filename, $list)) {
-            //$this->error(get_string('filenamenotunique', 'qformat_proforma') . ': "' .
-            //        $filename . '"');
             throw new Exception(get_string('filenamenotunique', 'qformat_proforma') . ': "' .
                     $filename . '"');
         }
