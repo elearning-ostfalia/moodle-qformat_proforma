@@ -39,8 +39,14 @@ class qformat_proforma extends qformat_default {
     private $version = null;
 
     private $taskfilename = '';
+    private $questionname = '';
 
     private $xpath = null;
+
+    public function can_import_file($file) {
+        return $file->get_mimetype() == mimeinfo('type', '.zip') or
+                $file->get_mimetype() == mimeinfo('type', '.xml');
+    }
 
     public function provide_import() {
         global $CFG;
@@ -54,6 +60,8 @@ class qformat_proforma extends qformat_default {
     }
 
     public function mime_type() {
+        // Argggh. I have to choose between zip and xml...
+        // Howto support both types???
         return mimeinfo('type', '.zip');
     }
 
@@ -73,10 +81,11 @@ class qformat_proforma extends qformat_default {
      * can be either
      * - a zip file containing serveral Proforma zip files or
      * - a Proforma zip file (containg a task.xml file)
+     * - a Proforma xml file
      * @return array|bool
      * - array of arrays
-         1. subfolder ('.' in case of exactely one ProFormA task)
-         2. task.xml lines
+     * 1. subfolder ('.' in case of exactely one ProFormA task)
+     * 2. task.xml lines
      */
     public function readdata($filename) {
         // Create temporary folder.
@@ -85,30 +94,40 @@ class qformat_proforma extends qformat_default {
 
         try {
             if (!is_readable($filename)) {
-                throw new moodle_exception(get_string('cannotreaduploadfile', 'error'));
+                throw new Exception(get_string('cannotreaduploadfile', 'error'));
             }
             $this->taskfilename = pathinfo($filename, PATHINFO_BASENAME);
-
-            // Create copy for extraction and extract.
-            // Overhead! todo use original file
+            $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            // Create copy.
             if (!copy($filename, $this->tempdir . '/' . $this->taskfilename)) {
-                throw new moodle_exception(get_string('cannotcopybackup', 'question'));
+                throw new Exception(get_string('cannotcopybackup', 'question'));
             }
 
-            // Extract zip content to $this->tempdir.
-            $packer = get_file_packer('application/zip');
-            if (!$packer->extract_to_pathname($this->tempdir . '/' . $this->taskfilename, $this->tempdir)) {
-                throw new moodle_exception(get_string('cannotunzip', 'question'));
+            if ('xml' == $extension) {
+                // XML file:
+                // Return task file as full path of task.xml file.
+                $filedata = array('.', file($filename));
+                $result[] = $filedata;
+                return $result;
+            } else if ('zip' != $extension) {
+                throw new Exception(get_string('noproformafile', 'qformat_proforma'));
             }
-            // Store task.xml in array $filenames if found
-            // (all other names are discarded)
+
+            // We have got a ZIP file:
             $taskfiles = array();
             $zipfiles = array();
             $otherfiles = array();
+            // Extract zip content to $this->tempdir.
+            $packer = get_file_packer('application/zip');
+            if (!$packer->extract_to_pathname($this->tempdir . '/' . $this->taskfilename, $this->tempdir)) {
+                throw new Exception(get_string('cannotunzip', 'question'));
+            }
+            // Store task.xml in array $filenames if found
+            // (all other names are discarded).
             $iterator = new DirectoryIterator($this->tempdir);
             foreach ($iterator as $fileinfo) {
                 if ($this->taskfilename == pathinfo($fileinfo->getFilename(), PATHINFO_BASENAME)) {
-                    // skip original archive file
+                    // Skip original archive file.
                     continue;
                 }
 
@@ -120,57 +139,128 @@ class qformat_proforma extends qformat_default {
                     }
                 }
             }
+
             $result = array();
-            switch(count($taskfiles)) {
+            switch (count($taskfiles)) {
                 case 0:
+                    // We have got a zipped file containing zipped ProFormA tasks:
                     if (count($otherfiles) > 0 or count($zipfiles) == 0) {
                         // No proforma file.
-                        throw new moodle_exception(get_string('noproformafile', 'qformat_proforma'));
+                        throw new Exception(get_string('noproformafile', 'qformat_proforma'));
                     } else {
                         // List of zip files.
                         foreach ($zipfiles as $zipfile) {
-                            $pathname = pathinfo($zipfile,  PATHINFO_FILENAME);
-                            if (!$packer->extract_to_pathname($this->tempdir . '/' . $zipfile, $this->tempdir . '/'. $pathname)) {
-                                throw new moodle_exception('cannot unzip ' . $zipfile);
+                            $pathname = pathinfo($zipfile, PATHINFO_FILENAME);
+                            if (!$packer->extract_to_pathname($this->tempdir . '/' . $zipfile, $this->tempdir . '/' . $pathname)) {
+                                throw new Exception('cannot unzip ' . $zipfile);
                             }
                             $taskfile = file($this->tempdir . '/' . $pathname . '/task.xml');
                             if ($taskfile) {
                                 $filedata = array($pathname, $taskfile);
                                 $result[] = $filedata;
                             } else {
-                                debugging('no task.xml in '. $this->tempdir . '/' . $pathname);
+                                debugging('no task.xml in ' . $this->tempdir . '/' . $pathname);
                             }
                         }
                         return $result;
                     }
                     break;
                 case 1:
+                    // We have got a zippd task file:
                     // Return full path of task.xml file.
                     $filedata = array('.', file($this->tempdir . '/' . $taskfiles[0]));
                     $result[] = $filedata;
                     return $result;
                 default:
                     // Should be unreachable code.
-                    throw new moodle_exception('unreachable code: more than one task.xml found in zip file');
+                    throw new coding_exception('unreachable code: more than one task.xml found in zip file');
             }
         } catch (Exception $e) {
             fulldelete($this->tempdir);
             $this->tempdir = '';
-            global $OUTPUT;
-            // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
-            // echo $OUTPUT->notification($e->getMessage());
             $this->error($e->getMessage());
-
             return false;
         }
     }
 
+    /**
+     * plugin interface function:
+     * return all questions from uploaded file
+     * (function is made public for test access)
+     *
+     * @param $lines
+     * @return array|bool
+     */
+    public function readquestions($filearray) {
+        $questions = array();
+        foreach ($filearray as $taskfile) {
+            $qo = $this->read_task_xml($taskfile[0], $taskfile[1]);
+            if ($qo) {
+                $questions = array_merge($questions, $qo);
+            }
+        }
+
+        if (count($questions) == 0) {
+            // Return false if no question could be read successfully.
+            return false;
+        }
+        // Return all questions that could be read successfully
+        // (ignore questions with errors).
+        return $questions;
+
+    }
+
+    /**
+     * creates question object from task.xml
+     *
+     * @param $lines
+     * @return array|bool
+     */
+    protected function read_task_xml($folder, $lines) {
+        // Concat lines to one single text.
+        $lines = implode('', $lines);
+
+        $questions = array();
+        $basetemp = $this->tempdir;
+        $oldbasename = $this->taskfilename;
+        try {
+            $version = $this->check_proforma_version($lines);
+            if (!$version) {
+                return false;
+            }
+
+            $task = new SimpleXMLElement($lines);
+            unset($lines); // No need to keep this in memory.
+
+            $this->tempdir = $this->tempdir . '/' . $folder;
+            if ($folder != '.') {
+                $this->taskfilename = $folder . '.zip';
+            }
+
+            $qo = $this->import_question($task, $basetemp . '/' . $this->taskfilename);
+            $qo->proformaversion = $version;
+            // Append the result to the $questions array.
+            if ($qo) {
+                $questions[] = $qo;
+            }
+        } catch (Exception $e) {
+            // global $OUTPUT;
+            // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
+            // echo $OUTPUT->notification($e->getMessage());
+            $this->error($e->getMessage(), '', '"' . $this->questionname . '"');
+        } finally {
+            $this->tempdir = $basetemp;
+            $this->taskfilename = $oldbasename;
+            $this->questionname = "";
+        }
+
+        return $questions;
+    }
+
     protected function check_proforma_version($lines) {
         $xmldoc = new DOMDocument;
-        if (!$xmldoc->loadXML($lines)) {
-            debugging('invalid XML in proforma file');
-            $this->error('invalid XML in proforma file');
-            return false;
+        if (!$xmldoc->loadXML($lines, LIBXML_NOERROR)) {
+            throw new Exception(get_string('invalidxml', 'qformat_proforma'));
         }
         $this->xpath = new DOMXPath($xmldoc);
 
@@ -185,79 +275,132 @@ class qformat_proforma extends qformat_default {
             return '1.0.1';
         }
 
-        debugging('no task or no valid proforma namespace found');
-        $this->error('no task or no valid proforma namespace found');
-        return false;
+        throw new Exception(get_string('namespacenotfound', 'qformat_proforma'));
     }
 
-    /**
-     * creates question object from task.xml
-     * @param $lines
-     * @return array|bool
-     */
-    protected function read_task_xml($folder, $lines) {
-        // create one text
-        $lines = implode('', $lines);
-        $version = $this->check_proforma_version($lines);
-        if (!$version) {
-            return false;
+    protected function import_question(SimpleXMLElement $xmltask, $taskfilepath) {
+        // This routine initialises the question object.
+        $qo = $this->defaultquestion();
+
+        // Description.
+        $qo->questiontext = (string) $xmltask->description;
+        $qo->questiontextformat = FORMAT_HTML;
+
+        // Set default values for attributes that are not stored in ProFormA task.
+        $qo->defaultmark = 1;
+        $qo->penalty = get_config('qtype_proforma', 'defaultpenalty'); // 0.1;
+        $qo->taskrepository = '';
+        $qo->taskpath = '';
+
+        // Header parts particular to ProFormA.
+        $qo->qtype = 'proforma';
+
+        $qo->uuid = (string) $xmltask['uuid'];
+
+        // lowercase programming language
+        $qo->programminglanguage = strtolower((string) $xmltask->proglang);
+
+        // read model solution and filename from first model solution entity
+        $qo->modelsolution = '';
+
+        $qo->responsefilename = '???';
+        $qo->responsetemplate = '';
+
+        switch ($this->version) {
+            case self::VERSION_V1:
+                // Question name.
+                $qo->name = (string) $xmltask->{'meta-data'}->title;
+                $this->questionname = $qo->name;
+                $this->import_files_v1($qo, $xmltask);
+                // instead of grading hints import tests (for title)
+                // for base of creating simple grading hints by teacher
+                $this->create_grading_hints_v1($qo, $xmltask);
+                $this->import_submission_restrictions_v1($qo, $xmltask);
+                break;
+            case self::VERSION_V2:
+                $qo->name = (string) $xmltask->title;
+                $this->questionname = $qo->name;
+                $this->import_files_v2($qo, $xmltask);
+                $this->import_grading_hints_v2($qo, $xmltask);
+                $this->import_submission_restrictions_v2($qo, $xmltask);
+                break;
+            default:
+                throw coding_exception('no version found');
         }
 
-        $task = new SimpleXMLElement($lines);
-        unset($lines); // No need to keep this in memory.
-        $questions = array();
-        $basetemp = $this->tempdir;
-        $oldbasename = $this->taskfilename;
+        $qo->taskfilename = $this->taskfilename;
+        $qo->taskstorage = qtype_proforma::INTERNAL_STORAGE;
+        $itemid = -1;
+        $qo->taskfiledraftid = $this->store_task_file($qo->taskfilename, $taskfilepath);
+        $qo->taskpath = $qo->taskpath . '/' . $qo->taskfilename;
 
-        try {
-            $this->tempdir = $this->tempdir . '/' . $folder;
-            if ($folder != '.') {
-                $this->taskfilename = $folder . '.zip';
-            }
+        $qo->comment = (string) $xmltask->{'internal-description'};
+        $qo->commentformat = FORMAT_HTML;
 
-            $qo = $this->import_question($task, $basetemp . '/' . $this->taskfilename);
-            $qo->proformaversion = $version;
-            // Stick the result in the $questions array.
-            if ($qo) {
-                $questions[] = $qo;
-            }
-        } catch (Exception $e) {
-            global $OUTPUT;
-            // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
-            // echo $OUTPUT->notification($e->getMessage());
-            $this->error($e->getMessage());
-        } finally {
-            $this->tempdir = $basetemp;
-            $this->taskfilename = $oldbasename;
-        }
-
-        return $questions;
+        return $qo;
     }
 
-    /**
-     * plugin interface function:
-     * return all questions from uploaded file
-     * (function is made public for test access)
-     * @param $lines
-     * @return array|bool
-     */
-    public function readquestions($filearray) {
-        $questions = array();
-        foreach ($filearray as $taskfile) {
-            $qo = $this->read_task_xml($taskfile[0], $taskfile[1]);
-            if ($qo) {
-                $questions = array_merge($questions, $qo);
+    protected function import_files_v1($qo, SimpleXMLElement $task) {
+        $downloads = array();
+        $qo->downloadid = null;
+        $templates = array();
+        $qo->templateid = null;
+        $modelsolfiles = array();
+        $qo->modelsolid = null;
+
+        foreach ($task->files->file as $file) {
+            $fileid = (string) $file['id'];
+            $fileclass = (string) $file['class'];
+            $embedded = (string) $file['type'] === 'embedded';
+            $content = (string) $file;
+            $filename = (string) $file['filename'];
+            switch ($fileclass) {
+                case 'internal':
+                case 'internal-library':
+                    // Check for model solution.
+                    foreach ($task->{'model-solutions'}->{'model-solution'}->filerefs->fileref as $msref) {
+                        $msfileid = (string) $msref['refid'];
+                        if ($fileid === $msfileid) {
+                            // file belongs to model solution
+                            $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsolid, $embedded);
+                            if (empty($qo->modelsolution)) {
+                                // first referenced file is found
+                                if ($embedded) {
+                                    $qo->modelsolution = $content;
+                                } else {
+                                    $qo->modelsolution = file_get_contents($this->tempdir . '/' . $filename);
+                                }
+
+                                $qo->responsefilename = $filename;
+                            }
+                        }
+                    }
+                    break;
+                case 'template':
+                    // Store first template for editor, other template files
+                    // are stored as normal files.
+                    if (empty($qo->responsetemplate)) {
+                        if ($embedded) {
+                            $qo->responsetemplate = $content;
+                        } else {
+                            $qo->responsetemplate = file_get_contents($this->tempdir . '/' . $filename);
+                        }
+                        $this->store_download_file($content, $filename, $templates, $qo->templateid, $embedded);
+                    } else {
+                        // Store only first template as 'template', others as download.
+                        $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $embedded);
+                    }
+                    break;
+                case 'instruction':
+                case 'library':
+                    $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $embedded);
+                    break;
             }
         }
 
-        if (count($questions) == 0) {
-            // return false if no question could be read successfully
-            return false;
-        }
-        // return all questions that could be read successfully
-        // (ignore questions with errors)
-        return $questions;
-
+        $qo->downloads = implode(',', $downloads);
+        $qo->templates = implode(',', $templates);
+        $qo->modelsolfiles = implode(',', $modelsolfiles);
     }
 
     protected function store_download_file($content, $filename, &$list, &$draftitemid, $embedded) {
@@ -266,14 +409,13 @@ class qformat_proforma extends qformat_default {
         global $USER;
 
         if ($filename == -1) {
-            $this->error('cannot create temporary file because of missing filename');
-            throw new moodle_exception('cannot create temporary file because of missing filename');
+            throw new coding_exception('cannot create temporary file because of missing filename');
         }
 
         if (in_array($filename, $list)) {
-            $this->error(get_string('filenamenotunique', 'qformat_proforma') . ': "' .
-                    $filename . '"');
-            throw new moodle_exception(get_string('filenamenotunique', 'qformat_proforma') . ': "' .
+            //$this->error(get_string('filenamenotunique', 'qformat_proforma') . ': "' .
+            //        $filename . '"');
+            throw new Exception(get_string('filenamenotunique', 'qformat_proforma') . ': "' .
                     $filename . '"');
         }
         $list[] = $filename;
@@ -299,7 +441,7 @@ class qformat_proforma extends qformat_default {
             $fs->create_file_from_string($fileinfo, $content);
         } else {
             if (!is_readable($this->tempdir . '/' . $filename)) {
-                throw new moodle_exception(get_string('missingfileintask', 'qformat_proforma', $filename));
+                throw new Exception(get_string('missingfileintask', 'qformat_proforma', $filename));
             }
             $filerecord = array(
                     'contextid' => context_user::instance($USER->id)->id,
@@ -347,262 +489,6 @@ class qformat_proforma extends qformat_default {
         $qo->aggregationstrategy = qtype_proforma::ALL_OR_NOTHING;
     }
 
-    protected function import_grading_hints_v2($qo, SimpleXMLElement $task) {
-
-        foreach ($task->{'grading-hints'}->root->{'test-ref'} as $test) {
-            $id = (string) ($test['ref']);
-            $tasktest = null;
-            foreach ($task->tests->test as $actualtest) {
-                if ($id === (string) $actualtest['id']) {
-                    $tasktest = $actualtest;
-                    break;
-                }
-            }
-
-            // todo: what is wrong with that?
-            // $tasktest = $task->xpath("//tests/test[@id='" . $id . "']");
-            // $tasktest = $tasktest[0];
-
-            if (!isset($tasktest)) {
-                $this->error('task is inconsistent: could not find test id ' . $id . ' in tests');
-            } else {
-                // merge test data into grading hints
-                $test->addChild("title", (string) $tasktest->title);
-                $test->addChild("test-type", (string) $tasktest->{'test-type'});
-                if (isset($tasktest->description)) {
-                    $test->addChild("description", (string) $tasktest->description);
-                }
-                if (isset($tasktest->{'internal-description'})) {
-                    $test->addChild("internal-description", (string) $tasktest->{'internal-description'});
-                }
-            }
-        }
-
-        $qo->gradinghints = (string) ($task->{'grading-hints'}->asXML());
-        $qo->aggregationstrategy = qtype_proforma::WEIGHTED_SUM;
-    }
-
-    protected function import_files_v1($qo, SimpleXMLElement $task) {
-        $downloads = array();
-        $qo->downloadid = null;
-        $templates = array();
-        $qo->templateid = null;
-        $modelsolfiles = array();
-        $qo->modelsolid = null;
-
-        foreach ($task->files->file as $file) {
-            $fileid = (string) $file['id'];
-            $fileclass = (string) $file['class'];
-            $embedded = (string) $file['type'] === 'embedded';
-            $content = (string) $file;
-            $filename = (string) $file['filename'];
-            switch ($fileclass) {
-                case 'internal':
-                case 'internal-library':
-                    // check for model solution
-                    foreach ($task->{'model-solutions'}->{'model-solution'}->filerefs->fileref as $msref) {
-                        $msfileid = (string) $msref['refid'];
-                        if ($fileid === $msfileid) {
-                            // file belongs to model solution
-                            $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsolid, $embedded);
-                            if (empty($qo->modelsolution)) {
-                                // first referenced file is found
-                                if ($embedded) {
-                                    $qo->modelsolution = $content;
-                                } else {
-                                    $qo->modelsolution = file_get_contents($this->tempdir . '/' . $filename);
-                                }
-
-                                $qo->responsefilename = $filename;
-                            }
-                        }
-                    }
-                    break;
-                case 'template':
-                    // store first template for editor, other template files
-                    // are stored as normal files
-                    if (empty($qo->responsetemplate)) {
-                        if ($embedded) {
-                            $qo->responsetemplate = $content;
-                        } else {
-                            $qo->responsetemplate = file_get_contents($this->tempdir . '/' . $filename);
-                        }
-                        $this->store_download_file($content, $filename, $templates, $qo->templateid, $embedded);
-                    } else {
-                        // store only first template as 'template', others as download
-                        $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $embedded);
-                    }
-                    break;
-                case 'instruction':
-                case 'library':
-                    $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $embedded);
-                    break;
-            }
-        }
-
-        $qo->downloads = implode(',', $downloads);
-        $qo->templates = implode(',', $templates);
-        $qo->modelsolfiles = implode(',', $modelsolfiles);
-    }
-
-    protected function import_files_v2($qo, SimpleXMLElement $task) {
-        $downloads = array();
-        $qo->downloadid = null;
-        $templates = array();
-        $qo->templateid = null;
-        $modelsolfiles = array();
-        $qo->modelsolid = null;
-
-        foreach ($task->files->file as $file) {
-            $fileid = (string) $file['id'];
-            $usagebylms = (string) $file['usage-by-lms'];
-            // $visible = (string)$file['visible'];
-
-            $content = 'TBD: EXTERN';
-            $filename = '???';
-            $isembedded = null;
-            $embedded = $file->{'embedded-txt-file'};
-            if ($embedded) {
-                $isembedded = true;
-                $content = (string) $embedded;
-                $filename = (string) $embedded['filename'];
-            } else {
-                $embedded = $file->{'embedded-bin-file'};
-                if ($embedded) {
-                    $this->error('Sorry! The task file contains embedded binary files. This is not supported!');
-                    throw new moodle_exception('Sorry! The task file contains embedded binary files. This is not supported!');
-                }
-
-                $attached = $file->{'attached-bin-file'};
-                if (!$attached) {
-                    $attached = $file->{'attached-txt-file'};
-                }
-                if ($attached) {
-                    $isembedded = false;
-                    $filename = (string) $attached;
-                }
-            }
-
-            switch ($usagebylms) {
-                case 'edit':
-                    // handle code snippet for editor
-                    if (count($templates) === 0) {
-                        // first code snippet can be changed in question editor by teacher
-                        $this->store_download_file($content, $filename, $templates, $qo->templateid, $isembedded);
-                        $qo->responsetemplate = $content;
-                    } else {
-                        // others must be downloaded
-                        $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $isembedded);
-                    }
-                    break;
-                case 'display':
-                case 'download':
-                    $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $isembedded);
-                    break;
-
-            }
-
-            // todo: read content from attached file
-            foreach ($task->{'model-solutions'}->{'model-solution'}->filerefs->fileref as $msref) {
-                $msfileid = (string) $msref['refid'];
-                if ($fileid === $msfileid) {
-                    // file belongs to model solution
-                    $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsolid, $isembedded);
-                    if (empty($qo->modelsolution)) {
-                        // first referenced file is found
-                        if ($isembedded) {
-                            $qo->modelsolution = $content;
-                        } else {
-                            $qo->modelsolution = file_get_contents($this->tempdir . '/' . $filename);
-                        }
-                        $qo->responsefilename = $filename;
-                    }
-                }
-            }
-        }
-
-        $qo->downloads = implode(',', $downloads);
-        $qo->templates = implode(',', $templates);
-        $qo->modelsolfiles = implode(',', $modelsolfiles);
-    }
-
-    protected function import_question(SimpleXMLElement $xmltask, $taskfilepath) {
-        // This routine initialises the question object.
-        $qo = $this->defaultquestion();
-
-        // description
-        $qo->questiontext = (string) $xmltask->description;
-        $qo->questiontextformat = FORMAT_HTML;
-
-        // set default values for attributes that are not stored in ProFormA task
-        $qo->defaultmark = 1;
-        $qo->penalty = get_config('qtype_proforma', 'defaultpenalty'); // 0.1;
-        $qo->taskrepository = '';
-        $qo->taskpath = '';
-
-        // Header parts particular to ProFormA.
-        $qo->qtype = 'proforma';
-
-        $qo->uuid = (string) $xmltask['uuid'];
-
-        // lowercase programming language
-        $qo->programminglanguage = strtolower((string) $xmltask->proglang);
-
-        // read model solution and filename from first model solution entity
-        $qo->modelsolution = '';
-
-        $qo->responsefilename = '???';
-        $qo->responsetemplate = '';
-
-        switch ($this->version) {
-            case self::VERSION_V1:
-                // Question name.
-                $qo->name = (string) $xmltask->{'meta-data'}->title;
-                $this->import_files_v1($qo, $xmltask);
-                // instead of grading hints import tests (for title)
-                // for base of creating simple grading hints by teacher
-                $this->create_grading_hints_v1($qo, $xmltask);
-                $this->import_submission_restrictions_v1($qo, $xmltask);
-                break;
-            case self::VERSION_V2:
-                $qo->name = (string) $xmltask->title;
-                $this->import_files_v2($qo, $xmltask);
-                $this->import_grading_hints_v2($qo, $xmltask);
-                $this->import_submission_restrictions_v2($qo, $xmltask);
-                break;
-            default:
-                throw coding_exception('no version found');
-        }
-
-        $qo->taskfilename = $this->taskfilename;
-        $qo->taskstorage = qtype_proforma::INTERNAL_STORAGE;
-        $itemid = -1;
-        $qo->taskfiledraftid = $this->store_task_file($qo->taskfilename, $taskfilepath);
-        $qo->taskpath = $qo->taskpath . '/' . $qo->taskfilename;
-
-        $qo->comment = (string) $xmltask->{'internal-description'};
-        $qo->commentformat = FORMAT_HTML;
-
-        return $qo;
-    }
-
-    protected function store_task_file($filename, $taskfilepath) {
-        global $USER;
-        $fs = get_file_storage();
-        $itemid = file_get_unused_draft_itemid();
-
-        $filerecord = array(
-                'contextid' => context_user::instance($USER->id)->id,
-                'component' => 'user',
-                'filearea' => 'draft',
-                'itemid' => $itemid,
-                'filepath' => '/',
-                'filename' => $filename,
-        );
-        $fs->create_file_from_pathname($filerecord, $taskfilepath); // $this->tempdir . '/' . $filename);
-        return $itemid;
-    }
-
     protected function import_submission_restrictions_v1($qo, SimpleXMLElement $task) {
         // read upload sizes (unit is kB)
         $maxbytes = (string) $task->{'submission-restrictions'}->{'regexp-restriction'}['max-size'];
@@ -647,6 +533,121 @@ class qformat_proforma extends qformat_default {
         }
     }
 
+    protected function import_files_v2($qo, SimpleXMLElement $task) {
+        $downloads = array();
+        $qo->downloadid = null;
+        $templates = array();
+        $qo->templateid = null;
+        $modelsolfiles = array();
+        $qo->modelsolid = null;
+
+        foreach ($task->files->file as $file) {
+            $fileid = (string) $file['id'];
+            $usagebylms = (string) $file['usage-by-lms'];
+            // $visible = (string)$file['visible'];
+
+            $content = 'TBD: EXTERN';
+            $filename = '???';
+            $isembedded = null;
+            $embedded = $file->{'embedded-txt-file'};
+            if ($embedded) {
+                $isembedded = true;
+                $content = (string) $embedded;
+                $filename = (string) $embedded['filename'];
+            } else {
+                $embedded = $file->{'embedded-bin-file'};
+                if ($embedded) {
+                    throw new Exception(get_string('notsupported', 'qformat_proforma') . 'embedded binary files');
+                }
+
+                $attached = $file->{'attached-bin-file'};
+                if (!$attached) {
+                    $attached = $file->{'attached-txt-file'};
+                }
+                if ($attached) {
+                    $isembedded = false;
+                    $filename = (string) $attached;
+                }
+            }
+
+            switch ($usagebylms) {
+                case 'edit':
+                    // Handle code snippet for editor.
+                    if (count($templates) === 0) {
+                        // first code snippet can be changed in question editor by teacher
+                        $this->store_download_file($content, $filename, $templates, $qo->templateid, $isembedded);
+                        $qo->responsetemplate = $content;
+                    } else {
+                        // Others files are download files.
+                        $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $isembedded);
+                    }
+                    break;
+                case 'display':
+                case 'download':
+                    $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $isembedded);
+                    break;
+
+            }
+
+            // todo: read content from attached file
+            foreach ($task->{'model-solutions'}->{'model-solution'}->filerefs->fileref as $msref) {
+                $msfileid = (string) $msref['refid'];
+                if ($fileid === $msfileid) {
+                    // File belongs to model solution.
+                    $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsolid, $isembedded);
+                    if (empty($qo->modelsolution)) {
+                        // First referenced file is found.
+                        if ($isembedded) {
+                            $qo->modelsolution = $content;
+                        } else {
+                            $qo->modelsolution = file_get_contents($this->tempdir . '/' . $filename);
+                        }
+                        $qo->responsefilename = $filename;
+                    }
+                }
+            }
+        }
+
+        $qo->downloads = implode(',', $downloads);
+        $qo->templates = implode(',', $templates);
+        $qo->modelsolfiles = implode(',', $modelsolfiles);
+    }
+
+    protected function import_grading_hints_v2($qo, SimpleXMLElement $task) {
+
+        foreach ($task->{'grading-hints'}->root->{'test-ref'} as $test) {
+            $id = (string) ($test['ref']);
+            $tasktest = null;
+            foreach ($task->tests->test as $actualtest) {
+                if ($id === (string) $actualtest['id']) {
+                    $tasktest = $actualtest;
+                    break;
+                }
+            }
+
+            // todo: what is wrong with that?
+            // $tasktest = $task->xpath("//tests/test[@id='" . $id . "']");
+            // $tasktest = $tasktest[0];
+
+            if (!isset($tasktest)) {
+                throw new Exception(get_string('inconsistenttest', 'qformat_proforma', $id));
+            } else {
+                // merge test data into grading hints
+                $test->addChild("title", (string) $tasktest->title);
+                $test->addChild("test-type", (string) $tasktest->{'test-type'});
+                if (isset($tasktest->description)) {
+                    $test->addChild("description", (string) $tasktest->description);
+                }
+                if (isset($tasktest->{'internal-description'})) {
+                    $test->addChild("internal-description", (string) $tasktest->{'internal-description'});
+                }
+            }
+        }
+
+        $qo->gradinghints = (string) ($task->{'grading-hints'}->asXML());
+        $qo->aggregationstrategy = qtype_proforma::WEIGHTED_SUM;
+    }
+
     protected function import_submission_restrictions_v2($qo, SimpleXMLElement $xmltask) {
         $maxbytes = $xmltask->{'submission-restrictions'}['max-size'];
         $qo->maxbytes = 0; // set default
@@ -678,7 +679,7 @@ class qformat_proforma extends qformat_default {
         $qo->filetypes = implode(';', $extensions);
 
         if ($count > 5) {
-            $this->error('more than 5 file uploads are not supported, use zip instead');
+            throw new Exception(get_string('notsupported', 'qformat_proforma') . 'more than 5 files in submission restriction');
         }
 
         if ($count <= 1) {
@@ -689,6 +690,23 @@ class qformat_proforma extends qformat_default {
             $qo->responseformat = 'filepicker';
             $qo->attachments = $count;
         }
+    }
+
+    protected function store_task_file($filename, $taskfilepath) {
+        global $USER;
+        $fs = get_file_storage();
+        $itemid = file_get_unused_draft_itemid();
+
+        $filerecord = array(
+                'contextid' => context_user::instance($USER->id)->id,
+                'component' => 'user',
+                'filearea' => 'draft',
+                'itemid' => $itemid,
+                'filepath' => '/',
+                'filename' => $filename,
+        );
+        $fs->create_file_from_pathname($filerecord, $taskfilepath); // $this->tempdir . '/' . $filename);
+        return $itemid;
     }
 
     /**
@@ -710,7 +728,5 @@ class qformat_proforma extends qformat_default {
         echo "<strong>{$message}</strong>\n";
         echo "</div>";
     }
-
-
 
 }

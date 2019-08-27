@@ -29,6 +29,11 @@ $string['pluginname_link'] = 'qformat/proforma';
 $string['noproformafile'] =
         'Unable to find any proforma file in the zip archive. Please make sure your archive contains the task.xml file at root level.';
 $string['filenamenotunique'] = 'Filename for attachment is not unique';
-$string['importwarningquestion'] = 'Filename for attachment is not unique';
+$string['importwarningquestion'] = 'Warning: ';
 $string['missingfileintask'] = 'File \'{$a}\' is referenced in task but is not attached';
+$string['notsupported'] = 'Sorry! The task file contains an unsupported ProFormA feature: ';
+$string['inconsistenttest'] = 'The task file is inconsistent. could not find test id "{a}" in tests';
+$string['invalidxml'] = 'The task file does not contain valid xml.';
+$string['namespacenotfound'] = 'The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported. Supported versions are 1.0.1 and 2.0.';
+$string['noproformafile'] = 'The file is not a ProFormA file (xml or zip).';
 

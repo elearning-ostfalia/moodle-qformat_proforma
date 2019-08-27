@@ -49,7 +49,7 @@ class qformat_proforma_test extends question_testcase {
         $this->setAdminUser();
     }
 
-    public function test_import_java_task_1() {
+    public function test_import_java_task_1_zip() {
         $this->prepare_test();
         // create proforma importer
         $importer = new qformat_proforma();
@@ -63,7 +63,7 @@ class qformat_proforma_test extends question_testcase {
         $this->assert_java_task_1($questions[0]);
     }
 
-    public function test_import_java_task_2() {
+    public function test_import_java_task_2_zip() {
         $this->prepare_test();
         // create proforma importer
         $importer = new qformat_proforma();
@@ -75,6 +75,99 @@ class qformat_proforma_test extends question_testcase {
         $this->assertEquals(1, count($questions));
 
         $this->assert_java_task_2($questions[0]);
+    }
+
+    public function test_import_java_task_2_xml() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaTask2.xml');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $this->assertEquals(1, count($questions));
+
+        $this->assert_java_task_2($questions[0]);
+    }
+
+    public function test_import_embedded_bin_file_xml() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaTaskEmbeddedBinFile.xml');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        // Check that there were some expected errors.
+        $this->assertContains('Error importing question', $output);
+        $this->assertContains('The task file contains an unsupported ProFormA feature: embedded binary files', $output);
+
+        $this->assertEquals(false, $questions);
+    }
+
+
+    public function test_import_invalid_version_xml() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaTask2Version1.5.xml');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        // Check that there were some expected errors.
+        $this->assertContains('Error importing question', $output);
+        $this->assertContains('The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported. Supported versions are', $output);
+
+        $this->assertEquals(false, $questions);
+    }
+
+
+    public function test_import_invalid_xml_xml() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaTask2invalidXml.xml');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        // Check that there were some expected errors.
+        $this->assertContains('Error importing question', $output);
+        $this->assertContains('The task file does not contain valid xml.', $output);
+
+        $this->assertEquals(false, $questions);
+    }
+
+
+    public function test_import_no_extension() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/javaTask2');
+        $this->assertEquals(false, $result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        // Check that there were some expected errors.
+        $this->assertContains('Error importing question', $output);
+        $this->assertContains('The file is not a ProFormA file (xml or zip).', $output);
     }
 
 

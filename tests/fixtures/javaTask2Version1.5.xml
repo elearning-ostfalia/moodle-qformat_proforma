@@ -1,0 +1,116 @@
+<?xml version="1.0"?><task xmlns="urn:proforma:v1.5" lang="de" uuid="c3c1a32a-b33b-4034-bf6f-6fbfe1efe3fc" xmlns:unit="urn:proforma:tests:unittest:v1.1"><title>is palindrom</title><description><![CDATA[checks whether a given string is a palindrom]]></description><proglang version="1.8">java</proglang><submission-restrictions/><files><file id="codeskeleton" used-by-grader="false" usage-by-lms="edit" visible="yes"><embedded-txt-file filename="code.txt"><![CDATA[package de.ostfalia.zell.isPalindromTask;
+
+public class MyString {
+	
+	static public Boolean isPalindrom(String aString) 
+	{
+		// ...
+	}
+}
+]]></embedded-txt-file><internal-description>Code Skeleton for Editor</internal-description></file><file id="1" used-by-grader="false" visible="delayed"><embedded-txt-file filename="de/ostfalia/zell/isPalindromTask/MyString.java"><![CDATA[package de.ostfalia.zell.isPalindromTask;
+
+public class MyString {
+	
+	static public Boolean isPalindrom(String aString) 
+	{
+		String reverse = new StringBuilder(aString).reverse().toString();
+
+		return (aString.equalsIgnoreCase(reverse));
+	}
+}
+]]></embedded-txt-file></file><file id="2" used-by-grader="true" visible="no"><embedded-txt-file filename="de/ostfalia/zell/isPalindromTask/PalindromTest.java"><![CDATA[package de.ostfalia.zell.isPalindromTask;
+
+import static org.junit.Assert.*;
+
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ErrorCollector;
+
+import org.junit.FixMethodOrder;
+import org.junit.runners.MethodSorters;
+
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+public class PalindromTest {
+
+    @Rule
+    public ErrorCollector collector = new ErrorCollector(); 
+    
+    @Test
+    public void testMultipleInput() {
+        Object[][] mylist = {
+                {"abc123321cbc", false}, 
+                {"abc123321cba", true},
+                {"121", true}, 
+                {"123", false}
+        };
+                
+        
+        for (Object[] item : mylist) {          
+            try
+            {
+                assertEquals("Test for " + item[0], item[1], MyString.isPalindrom(item[0].toString()));             
+            }
+            catch(Throwable e)
+            {
+                collector.addError(e);  
+            }                       
+          }         
+    }
+    
+    
+    @Test
+    public void testLagertonnennotregal() {
+        assertTrue("Lagertonnenregal mismatch", MyString.isPalindrom("Lagertonnennotregal"));
+    }
+
+
+    @Test
+    public void testRentner() {
+        assertEquals("Rentner", true, MyString.isPalindrom("Rentner"));
+    }
+        
+
+    @Test
+    public void testEmpty() {
+        String emptyString = "";
+        assertEquals("tests StringHelper.isEmpty", true, StringHelper.isEmpty(emptyString));
+   	
+
+        assertEquals("", true, MyString.isPalindrom(""));
+        assertEquals(" ", true, MyString.isPalindrom(" "));
+        assertEquals("  ", true, MyString.isPalindrom("  "));
+            
+    }
+
+    @Test
+    public void testRandom() {
+        assertEquals("abc123321cba", true, MyString.isPalindrom("abc123321cba"));
+            
+    }
+
+    @Test
+    public void testFalse1() {
+        assertEquals("abc123321cbc", false, MyString.isPalindrom("abc123321cbc"));
+    }
+
+    @Test
+    public void testFalse2() {
+        assertEquals("abb", false, MyString.isPalindrom("abb"));        
+            
+    }
+    
+}
+]]></embedded-txt-file></file><file id="3" used-by-grader="true" visible="no"><embedded-txt-file filename="de/ostfalia/zell/isPalindromTask/StringHelper.java"><![CDATA[package de.ostfalia.zell.isPalindromTask;
+
+// dummy class with dummy method to test what happens if
+// the praktomat gets two files
+public class StringHelper {
+	static public boolean isEmpty(String value)
+	{
+		return value.isEmpty();
+	}
+
+}
+]]></embedded-txt-file></file></files><model-solutions><model-solution id="1"><filerefs><fileref refid="1"/></filerefs><description>model solution</description></model-solution></model-solutions><tests><test id="1"><title>Compiler Test</title><test-type>java-compilation</test-type><test-configuration/></test><test id="2"><title>Junit Test ostfalia/zell/isPalindromTask/PalindromTest</title><test-type>unittest</test-type><test-configuration><filerefs><fileref refid="2"/><fileref refid="3"/></filerefs><unit:unittest framework="JUnit" version="4.12"><unit:entry-point>de.ostfalia.zell.isPalindromTask.PalindromTest</unit:entry-point></unit:unittest></test-configuration></test></tests><grading-hints><root function="sum"><test-ref weight="0" ref="1"/><test-ref weight="1" ref="2"/></root></grading-hints><meta-data/></task>
