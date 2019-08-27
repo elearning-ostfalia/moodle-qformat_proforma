@@ -178,7 +178,7 @@ class qformat_proforma extends qformat_default {
         } catch (Exception $e) {
             fulldelete($this->tempdir);
             $this->tempdir = '';
-            $this->error($e->getMessage());
+            $this->error($e->getMessage(), '', ': ');
             return false;
         }
     }
@@ -247,7 +247,7 @@ class qformat_proforma extends qformat_default {
             // global $OUTPUT;
             // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
             // echo $OUTPUT->notification($e->getMessage());
-            $this->error($e->getMessage(), '', '"' . $this->questionname . '"');
+            $this->error($e->getMessage(), '', '"' . $this->questionname . '": ');
         } finally {
             $this->tempdir = $basetemp;
             $this->taskfilename = $oldbasename;
