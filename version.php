@@ -26,9 +26,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qformat_proforma';
-$plugin->version = 2019082700;
+$plugin->version = 2019091700;
 $plugin->requires = 2016120503;
-$plugin->release = '0.9.5';
+$plugin->release = '0.9.6';
 $plugin->maturity = MATURITY_STABLE;
 
 $plugin->dependencies = array(

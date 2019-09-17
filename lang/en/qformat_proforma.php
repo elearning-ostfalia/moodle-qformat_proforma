@@ -36,4 +36,5 @@ $string['inconsistenttest'] = 'The task file is inconsistent. could not find tes
 $string['invalidxml'] = 'The task file does not contain valid xml.';
 $string['namespacenotfound'] = 'The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported. Supported versions are 1.0.1 and 2.0.';
 $string['noproformafile'] = 'The file is not a ProFormA file (xml or zip).';
+$string['privacy:metadata'] = 'The ProFormA question format plugin does not store any personal data.';
 
