@@ -754,6 +754,7 @@ class qformat_proforma extends qformat_default {
 
         $extensions = array();
         $count = 0;
+        $filepicker = false;
         foreach ($xmltask->{'submission-restrictions'}->{'file-restriction'} as $restriction) {
             $filename = (string) $restriction;
             if ($restriction['pattern-format'] === 'posix-ere') {
@@ -766,6 +767,11 @@ class qformat_proforma extends qformat_default {
             // find extension
             $extension = pathinfo($filename, PATHINFO_EXTENSION);
             if (strlen($extension) > 0) { // ignore files with no extension
+                // check extension for binary files
+                $binfile = array("zip", "gzip", "gz", "tar");
+                if (in_array(strtolower($extension), $binfile)) {
+                    $filepicker = true;
+                }
                 if (array_search('.' . $extension, $extensions) === false) {
                     $extensions[] = '.' . $extension;
                 }
@@ -778,7 +784,7 @@ class qformat_proforma extends qformat_default {
             throw new Exception(get_string('notsupported', 'qformat_proforma') . 'more than 5 files in submission restriction');
         }
 
-        if ($count <= 1) {
+        if ($count <= 1 and !$filepicker) {
             $qo->responseformat = 'editor';
             $qo->responsefieldlines = 15;
             $qo->attachments = 0;
