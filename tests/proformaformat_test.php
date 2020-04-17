@@ -74,7 +74,7 @@ class qformat_proforma_test extends question_testcase {
         $questions = $importer->readquestions($result);
         $this->assertEquals(1, count($questions));
 
-        $this->assert_java_task_2($questions[0]);
+        $this->assert_java_task_2($questions[0], 'cc1a0ff4-8550-49a9-b33b-4bc3cc30613f');
     }
 
     public function test_import_java_task_2_xml() {
@@ -297,7 +297,7 @@ public class MyString
     /**
      * @param $questions
      */
-    protected function assert_java_task_2($question) {
+    protected function assert_java_task_2($question, $uuid = null) {
         $expectedq = (object) array(
                 'questiontextformat' => FORMAT_HTML,
                 'generalfeedback' => '',
@@ -309,12 +309,12 @@ public class MyString
         );
 
         $this->assert(new question_check_specified_fields_expectation($expectedq), $question);
-        $this->assertEquals($question->name, 'is palindrom');
-        $this->assertEquals($question->questiontext, 'checks whether a given string is a palindrom');
-        $this->assertEquals($question->qtype, 'proforma');
+        $this->assertEquals('is palindrom', $question->name);
+        $this->assertEquals('checks whether a given string is a palindrom', $question->questiontext);
+        $this->assertEquals('proforma', $question->qtype);
 
-        $this->assertEquals($question->uuid, 'c3c1a32a-b33b-4034-bf6f-6fbfe1efe3fc');
-        $this->assertEquals($question->programminglanguage, 'java');
+        $this->assertEquals('cc1a0ff4-8550-49a9-b33b-4bc3cc30613f', $question->uuid);
+        $this->assertEquals('java', $question->programminglanguage);
 
         $this->assertEquals('package de.ostfalia.zell.isPalindromTask;
 
@@ -342,7 +342,7 @@ public class MyString {
 ',
                 $question->responsetemplate);
         $this->assertEquals('de/ostfalia/zell/isPalindromTask/MyString.java', $question->responsefilename);
-        $this->assertEquals('', $question->downloads);
+        $this->assertEquals('palindrom.txt,samples.txt', $question->downloads);
         $this->assertEquals('code.txt', $question->templates);
         $this->assertEquals('de/ostfalia/zell/isPalindromTask/MyString.java', $question->modelsolfiles);
         $this->assertEquals('<grading-hints><root function="sum"><test-ref weight="0" ref="1"><title>Compiler Test</title><test-type>java-compilation</test-type></test-ref><test-ref weight="1" ref="2"><title>Junit Test ostfalia/zell/isPalindromTask/PalindromTest</title><test-type>unittest</test-type></test-ref></root></grading-hints>',

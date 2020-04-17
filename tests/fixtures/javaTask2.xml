@@ -1,4 +1,4 @@
-<?xml version="1.0"?><task xmlns="urn:proforma:v2.0" lang="de" uuid="c3c1a32a-b33b-4034-bf6f-6fbfe1efe3fc" xmlns:unit="urn:proforma:tests:unittest:v1.1"><title>is palindrom</title><description><![CDATA[checks whether a given string is a palindrom]]></description><proglang version="1.8">java</proglang><submission-restrictions/><files><file id="codeskeleton" used-by-grader="false" usage-by-lms="edit" visible="yes"><embedded-txt-file filename="code.txt"><![CDATA[package de.ostfalia.zell.isPalindromTask;
+<?xml version="1.0"?><task xmlns="urn:proforma:v2.0" lang="de" uuid="cc1a0ff4-8550-49a9-b33b-4bc3cc30613f" xmlns:unit="urn:proforma:tests:unittest:v1.1"><title>is palindrom</title><description><![CDATA[checks whether a given string is a palindrom]]></description><proglang version="1.8">java</proglang><submission-restrictions/><files><file id="codeskeleton" used-by-grader="false" usage-by-lms="edit" visible="yes"><embedded-txt-file filename="code.txt"><![CDATA[package de.ostfalia.zell.isPalindromTask;
 
 public class MyString {
 	
@@ -113,4 +113,17 @@ public class StringHelper {
 	}
 
 }
+]]></embedded-txt-file></file><file id="4" used-by-grader="false" usage-by-lms="download" visible="yes"><embedded-txt-file filename="palindrom.txt"><![CDATA[what is a palindrome?
+
+Wikipedia says: 
+
+A palindrome is a word, number, phrase, or other sequence of characters which reads the same backward as forward, such as madam, racecar. 
+
+(https://en.wikipedia.org/wiki/Palindrome)
+]]></embedded-txt-file></file><file id="5" used-by-grader="false" usage-by-lms="download" visible="yes"><embedded-txt-file filename="samples.txt"><![CDATA[Otto
+Hannah
+Anna
+Madam, I’m Adam.
+Never odd or even.
+Ein Neger mit Gazelle zagt im Regen nie.
 ]]></embedded-txt-file></file></files><model-solutions><model-solution id="1"><filerefs><fileref refid="1"/></filerefs><description>model solution</description></model-solution></model-solutions><tests><test id="1"><title>Compiler Test</title><test-type>java-compilation</test-type><test-configuration/></test><test id="2"><title>Junit Test ostfalia/zell/isPalindromTask/PalindromTest</title><test-type>unittest</test-type><test-configuration><filerefs><fileref refid="2"/><fileref refid="3"/></filerefs><unit:unittest framework="JUnit" version="4.12"><unit:entry-point>de.ostfalia.zell.isPalindromTask.PalindromTest</unit:entry-point></unit:unittest></test-configuration></test></tests><grading-hints><root function="sum"><test-ref weight="0" ref="1"/><test-ref weight="1" ref="2"/></root></grading-hints><meta-data/></task>
