@@ -313,7 +313,7 @@ public class MyString
         $this->assertEquals('checks whether a given string is a palindrom', $question->questiontext);
         $this->assertEquals('proforma', $question->qtype);
 
-        $this->assertEquals('cc1a0ff4-8550-49a9-b33b-4bc3cc30613f', $question->uuid);
+        $this->assertEquals('679c8796-97cc-41fc-8825-8b4d70cf79c2', $question->uuid);
         $this->assertEquals('java', $question->programminglanguage);
 
         $this->assertEquals('package de.ostfalia.zell.isPalindromTask;
@@ -342,7 +342,7 @@ public class MyString {
 ',
                 $question->responsetemplate);
         $this->assertEquals('de/ostfalia/zell/isPalindromTask/MyString.java', $question->responsefilename);
-        $this->assertEquals('palindrom.txt,samples.txt', $question->downloads);
+        $this->assertEquals('palindrom.txt,samples.txt,de/ostfalia/zell/isPalindromTask/MyStringTemplate.java', $question->downloads);
         $this->assertEquals('code.txt', $question->templates);
         $this->assertEquals('de/ostfalia/zell/isPalindromTask/MyString.java', $question->modelsolfiles);
         $this->assertEquals('<grading-hints><root function="sum"><test-ref weight="0" ref="1"><title>Compiler Test</title><test-type>java-compilation</test-type></test-ref><test-ref weight="1" ref="2"><title>Junit Test ostfalia/zell/isPalindromTask/PalindromTest</title><test-type>unittest</test-type></test-ref></root></grading-hints>',

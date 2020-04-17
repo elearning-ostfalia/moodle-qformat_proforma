@@ -43,12 +43,15 @@ Feature: IMPORT (ProFormA format)
       | Comment                  |        |
       | Penalty for each incorrect try  | 10%                     |
       | Aggregation strategy     | Weighted sum  |
-      | UUID                     | cc1a0ff4-8550-49a9-b33b-4bc3cc30613f     |
+      | UUID                     | 679c8796-97cc-41fc-8825-8b4d70cf79c2     |
       | ProFormA Version         | 2.0                        |
 
-    And I should see "2" elements in "Downloadable files" filemanager
+    And I should see "3" elements in "Downloadable files" filemanager
     And I should see "palindrom.txt"
     And I should see "samples.txt"
+    # filename of download file with complex path is not completely visible
+    #And I should see "de/ostfalia/zell/isPalindromTask/MyStringTemplate.java"
+
     # check for incorrect filename in model solution file
     And I should not see "deostfaliazellisPalindromTaskMyString.java"
 
@@ -65,10 +68,9 @@ Feature: IMPORT (ProFormA format)
     And the field "testdescription[1]" matches value ""
 
     And following "de/ostfalia/zell/isPalindromTask/MyString.java" should download file with between "244" and "250" bytes
-
     # grader settings
     And I should see "javaTask2.zip"
-
+    And following "javaTask2.zip" should download file with between "1828" and "1829" bytes
     # multiline fields
     And the field "Response template" starts with "package de.ostfalia.zell.isPalindromTask;"
 
@@ -86,6 +88,8 @@ Feature: IMPORT (ProFormA format)
     And following "palindrom.txt" should download file with between "224" and "232" bytes
     And following "samples.txt" should download file with between "96" and "103" bytes
     And following "template.txt" should download file with between "137" and "150" bytes
+    And following "de/ostfalia/zell/isPalindromTask/MyStringTemplate.java" should download file with between "146" and "150" bytes
+
     And I switch to the main window
 
 
@@ -102,9 +106,11 @@ Feature: IMPORT (ProFormA format)
     Then I should see "palindrom.txt"
     Then I should see "samples.txt"
     Then I should not see "template.txt"
+    And I should see "de/ostfalia/zell/isPalindromTask/MyStringTemplate.java"
     # only one reponse template
     Then I should not see "code.txt"
     And following "palindrom.txt" should download file with between "224" and "232" bytes
     And following "samples.txt" should download file with between "96" and "103" bytes
+    And following "de/ostfalia/zell/isPalindromTask/MyStringTemplate.java" should download file with between "146" and "150" bytes
     # And following "template.txt" should download file with between "137" and "150" bytes
     And I switch to the main window

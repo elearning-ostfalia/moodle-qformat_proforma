@@ -487,6 +487,16 @@ class qformat_proforma extends qformat_default {
         }
 
         $fs = get_file_storage();
+        // old:
+        // $filepath = '/';
+        // $filename = $filename;
+        // new:
+        $path_parts = pathinfo('/'. $filename);
+        $filepath = $path_parts['dirname'];
+        $filename = $path_parts['basename'];
+        if  ($filepath[strlen($filepath) - 1] !== '/') {
+            $filepath = $filepath . '/';
+        }
 
         if ($embedded) {
             // Prepare file record object
@@ -495,13 +505,13 @@ class qformat_proforma extends qformat_default {
                     'component' => 'user',     // usually = table name
                     'filearea' => 'draft',     // usually = table name
                     'itemid' => $draftitemid,               // usually = ID of row in table
-                    'filepath' => '/',           // any path beginning and ending in /
+                    'filepath' => $filepath,           // any path beginning and ending in /
                     'filename' => $filename); // any filename
 
             /*$storedfile = */
             $fs->create_file_from_string($fileinfo, $content);
         } else {
-            if (!is_readable($this->tempdir . '/' . $filename)) {
+            if (!is_readable($this->tempdir . $filepath . $filename)) {
                 throw new Exception(get_string('missingfileintask', 'qformat_proforma', $filename));
             }
             $filerecord = array(
@@ -509,10 +519,10 @@ class qformat_proforma extends qformat_default {
                     'component' => 'user',
                     'filearea' => 'draft',
                     'itemid' => $draftitemid,
-                    'filepath' => '/',
+                    'filepath' => $filepath,
                     'filename' => $filename,
             );
-            $fs->create_file_from_pathname($filerecord, $this->tempdir . '/' . $filename);
+            $fs->create_file_from_pathname($filerecord, $this->tempdir . $filepath . $filename);
 
         }
     }
