@@ -377,7 +377,8 @@ class qformat_proforma extends qformat_default {
         $qo->taskfilename = $this->taskfilename;
         $qo->taskstorage = qtype_proforma::PERSISTENT_TASKFILE;
         $itemid = -1;
-        $qo->taskfiledraftid = $this->store_task_file($qo->taskfilename, $taskfilepath);
+        $qo->task = $this->store_task_file($qo->taskfilename, $taskfilepath);
+        // $qo->taskfiledraftid = $this->store_task_file($qo->taskfilename, $taskfilepath);
         $qo->taskpath = $qo->taskpath . '/' . $qo->taskfilename;
 
         $qo->comment = (string) $xmltask->{'internal-description'};
@@ -394,11 +395,11 @@ class qformat_proforma extends qformat_default {
      */
     protected function import_files_v1($qo, SimpleXMLElement $task) {
         $downloads = array();
-        $qo->downloadid = null;
+        $qo->download = null;
         $templates = array();
-        $qo->templateid = null;
+        $qo->template = null;
         $modelsolfiles = array();
-        $qo->modelsolid = null;
+        $qo->modelsol = null;
 
         foreach ($task->files->file as $file) {
             $fileid = (string) $file['id'];
@@ -414,7 +415,7 @@ class qformat_proforma extends qformat_default {
                         $msfileid = (string) $msref['refid'];
                         if ($fileid === $msfileid) {
                             // file belongs to model solution
-                            $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsolid, $embedded);
+                            $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $embedded);
                             if (empty($qo->modelsolution)) {
                                 // first referenced file is found
                                 if ($embedded) {
@@ -437,15 +438,15 @@ class qformat_proforma extends qformat_default {
                         } else {
                             $qo->responsetemplate = file_get_contents($this->tempdir . '/' . $filename);
                         }
-                        $this->store_download_file($content, $filename, $templates, $qo->templateid, $embedded);
+                        $this->store_download_file($content, $filename, $templates, $qo->template, $embedded);
                     } else {
                         // Store only first template as 'template', others as download.
-                        $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $embedded);
+                        $this->store_download_file($content, $filename, $downloads, $qo->download, $embedded);
                     }
                     break;
                 case 'instruction':
                 case 'library':
-                    $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $embedded);
+                    $this->store_download_file($content, $filename, $downloads, $qo->download, $embedded);
                     break;
             }
         }
@@ -629,11 +630,11 @@ class qformat_proforma extends qformat_default {
      */
     protected function import_files_v2($qo, SimpleXMLElement $task) {
         $downloads = array();
-        $qo->downloadid = null;
+        $qo->download = null;
         $templates = array();
-        $qo->templateid = null;
+        $qo->template = null;
         $modelsolfiles = array();
-        $qo->modelsolid = null;
+        $qo->modelsol = null;
 
         foreach ($task->files->file as $file) {
             $fileid = (string) $file['id'];
@@ -669,16 +670,16 @@ class qformat_proforma extends qformat_default {
                     // Handle code snippet for editor.
                     if (count($templates) === 0) {
                         // first code snippet can be changed in question editor by teacher
-                        $this->store_download_file($content, $filename, $templates, $qo->templateid, $isembedded);
+                        $this->store_download_file($content, $filename, $templates, $qo->template, $isembedded);
                         $qo->responsetemplate = $content;
                     } else {
                         // Others files are download files.
-                        $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $isembedded);
+                        $this->store_download_file($content, $filename, $downloads, $qo->download, $isembedded);
                     }
                     break;
                 case 'display':
                 case 'download':
-                    $this->store_download_file($content, $filename, $downloads, $qo->downloadid, $isembedded);
+                    $this->store_download_file($content, $filename, $downloads, $qo->download, $isembedded);
                     break;
 
             }
@@ -688,7 +689,7 @@ class qformat_proforma extends qformat_default {
                 $msfileid = (string) $msref['refid'];
                 if ($fileid === $msfileid) {
                     // File belongs to model solution.
-                    $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsolid, $isembedded);
+                    $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $isembedded);
                     if (empty($qo->modelsolution)) {
                         // First referenced file is found.
                         if ($isembedded) {
