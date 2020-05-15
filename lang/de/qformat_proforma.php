@@ -32,7 +32,7 @@ $string['missingfileintask'] = 'Die referenzierte Datei \'{$a}\' ist nicht im Ta
 $string['notsupported'] = 'Die Datei benutzt ein ProFormA-Feature, das nicht unterstützt wird: ';
 $string['inconsistenttest'] = 'Die Aufgabendatei ist inkonsistent: Die Test-ID "{a}" ist nicht in den Tests enthalten.';
 $string['invalidxml'] = 'Die Aufgabendatei enthält kein gültiges XML.';
-$string['namespacenotfound'] = 'Die Aufgabendatei enthält keinen ProFormA-task oder die Version des ProFormA-Tasks wird nicht unterstützt. Unterstützte Versionen sind 1.0.1 und 2.0.';
+$string['namespacenotfound'] = 'Die Aufgabendatei enthält keinen ProFormA-task oder die Version des ProFormA-Tasks wird nicht unterstützt. Unterstützte Versionen sind 1.0.1, 2.0 und 2.0.1.';
 $string['noproformafile'] = 'Die Datei ist keine ProFormA-Datei (xml oder zip).';
 $string['privacy:metadata'] = 'Das ProFormA Frageformat Plugin speichert keine personenbezogenen Daten.';
 

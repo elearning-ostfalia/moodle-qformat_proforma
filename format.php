@@ -31,6 +31,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/question/type/proforma/questiontype.php');
+require_once($CFG->dirroot . '/question/format/proforma/classes/ProformaXMLElement.php');
 
 class qformat_proforma extends qformat_default {
 
@@ -61,6 +62,8 @@ class qformat_proforma extends qformat_default {
     /** @var null xpath variable */
     private $xpath = null;
 
+    /** @var null ProFormA namespace of task */
+    private $namespace = null;
     /**
      * checks if a given file can be imported (check filename xtension)
      * @param stored_file $file
@@ -261,7 +264,7 @@ class qformat_proforma extends qformat_default {
                 return false;
             }
 
-            $task = new SimpleXMLElement($lines);
+            $xmltask = new SimpleXMLElement($lines);
             unset($lines); // No need to keep this in memory.
 
             $this->tempdir = $this->tempdir . '/' . $folder;
@@ -269,7 +272,7 @@ class qformat_proforma extends qformat_default {
                 $this->taskfilename = $folder . '.zip';
             }
 
-            $qo = $this->import_question($task, $basetemp . '/' . $this->taskfilename);
+            $qo = $this->import_question($xmltask, $basetemp . '/' . $this->taskfilename);
             $qo->proformaversion = $version;
             // Append the result to the $questions array.
             if ($qo) {
@@ -303,15 +306,24 @@ class qformat_proforma extends qformat_default {
         }
         $this->xpath = new DOMXPath($xmldoc);
 
-        $this->xpath->registerNamespace('dns1', 'urn:proforma:task:v1.0.1');
-        $this->xpath->registerNamespace('dns2', 'urn:proforma:v2.0');
+        $supported_versions = array(
+                array('urn:proforma:task:v1.0.1', '1.0.1', self::VERSION_V1),
+                array('urn:proforma:v2.0', '2.0', self::VERSION_V2),
+                array('urn:proforma:v2.0.1', '2.0.1', self::VERSION_V2),
+        );
 
-        if ($this->xpath->query('//dns2:task')->length > 0) {
-            $this->version = self::VERSION_V2;
-            return '2.0';
-        } else if ($this->xpath->query('//dns1:task')->length > 0) {
-            $this->version = self::VERSION_V1;
-            return '1.0.1';
+        $index = 1;
+        foreach ($supported_versions as $version) {
+            $prefix = 'dns' . $index;
+            // Register supported version...
+            $this->xpath->registerNamespace($prefix, $version[0]);
+            // And look for matching task.
+            if ($this->xpath->query('//' . $prefix . ':task')->length > 0) {
+                $this->version = $version[2];
+                $this->namespace = $version[0];
+                return $version[1];
+            }
+            $index++;
         }
 
         throw new Exception(get_string('namespacenotfound', 'qformat_proforma'));
@@ -328,6 +340,7 @@ class qformat_proforma extends qformat_default {
         // This routine initialises the question object.
         $qo = $this->defaultquestion();
 
+        $xmltask = new ProformaXMLElement($xmltask, $this->namespace);
         // Description.
         $qo->questiontext = (string) $xmltask->description;
         $qo->questiontextformat = FORMAT_HTML;
@@ -391,9 +404,9 @@ class qformat_proforma extends qformat_default {
      * import files from task version 1
      *
      * @param $qo
-     * @param SimpleXMLElement $task
+     * @param ProformaXMLElement $task
      */
-    protected function import_files_v1($qo, SimpleXMLElement $task) {
+    protected function import_files_v1($qo, ProformaXMLElement $task) {
         $downloads = array();
         $qo->download = null;
         $templates = array();
@@ -531,9 +544,9 @@ class qformat_proforma extends qformat_default {
     /**
      * create LMS internal grading hints from ProFormA file version 1
      * @param $qo
-     * @param SimpleXMLElement $task
+     * @param ProformaXMLElement $task
      */
-    protected function create_grading_hints_v1($qo, SimpleXMLElement $task) {
+    protected function create_grading_hints_v1($qo, ProformaXMLElement $task) {
         // task version 1.0.1 does not contain grading hints
         $xw = new SimpleXmlWriter();
         $xw->openMemory();
@@ -569,9 +582,9 @@ class qformat_proforma extends qformat_default {
     /**
      * import submission restrictions from ProFormA file version 1
      * @param $qo
-     * @param SimpleXMLElement $task
+     * @param ProformaXMLElement $task
      */
-    protected function import_submission_restrictions_v1($qo, SimpleXMLElement $task) {
+    protected function import_submission_restrictions_v1($qo, ProformaXMLElement $task) {
         // read upload sizes (unit is kB)
         $maxbytes = (string) $task->{'submission-restrictions'}->{'regexp-restriction'}['max-size'];
         $qo->maxbytes = 0; // set default
@@ -625,10 +638,10 @@ class qformat_proforma extends qformat_default {
      * import files from ProFormA version 2
      *
      * @param $qo
-     * @param SimpleXMLElement $task
+     * @param ProformaXMLElement $xmltask
      * @throws Exception
      */
-    protected function import_files_v2($qo, SimpleXMLElement $task) {
+    protected function import_files_v2($qo, ProformaXMLElement $xmltask) {
         $downloads = array();
         $qo->download = null;
         $templates = array();
@@ -636,7 +649,8 @@ class qformat_proforma extends qformat_default {
         $modelsolfiles = array();
         $qo->modelsol = null;
 
-        foreach ($task->files->file as $file) {
+        $modelsolutionwarning = false;
+        foreach ($xmltask->files->file as $file) {
             $fileid = (string) $file['id'];
             $usagebylms = (string) $file['usage-by-lms'];
             // $visible = (string)$file['visible'];
@@ -685,19 +699,27 @@ class qformat_proforma extends qformat_default {
             }
 
             // todo: read content from attached file
-            foreach ($task->{'model-solutions'}->{'model-solution'}->filerefs->fileref as $msref) {
-                $msfileid = (string) $msref['refid'];
-                if ($fileid === $msfileid) {
-                    // File belongs to model solution.
-                    $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $isembedded);
-                    if (empty($qo->modelsolution)) {
-                        // First referenced file is found.
-                        if ($isembedded) {
-                            $qo->modelsolution = $content;
-                        } else {
-                            $qo->modelsolution = file_get_contents($this->tempdir . '/' . $filename);
+            $modelsolution = $xmltask->{'model-solutions'}->{'model-solution'};
+            if (count($modelsolution) > 1) {
+                if (!$modelsolutionwarning) {
+                    $modelsolutionwarning = true;
+                    $this->warning('task contains more than one model solution. None is imported!');
+                }
+            } else {
+                foreach ($modelsolution->filerefs->fileref as $msref) {
+                    $msfileid = (string) $msref['refid'];
+                    if ($fileid === $msfileid) {
+                        // File belongs to model solution.
+                        $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $isembedded);
+                        if (empty($qo->modelsolution)) {
+                            // First referenced file is found.
+                            if ($isembedded) {
+                                $qo->modelsolution = $content;
+                            } else {
+                                $qo->modelsolution = file_get_contents($this->tempdir . '/' . $filename);
+                            }
+                            $qo->responsefilename = $filename;
                         }
-                        $qo->responsefilename = $filename;
                     }
                 }
             }
@@ -710,16 +732,18 @@ class qformat_proforma extends qformat_default {
 
     /**
      * import KMS internal grading hints from ProFormA file version 2
+     *
      * @param $qo
-     * @param SimpleXMLElement $task
+     * @param ProformaXMLElement $xmltask
      * @throws Exception
      */
-    protected function import_grading_hints_v2($qo, SimpleXMLElement $task) {
+    protected function import_grading_hints_v2($qo, ProformaXMLElement $xmltask) {
 
-        foreach ($task->{'grading-hints'}->root->{'test-ref'} as $test) {
+        $validgradinghints = true;
+        foreach ($xmltask->{'grading-hints'}->root->{'test-ref'} as $test) {
             $id = (string) ($test['ref']);
             $tasktest = null;
-            foreach ($task->tests->test as $actualtest) {
+            foreach ($xmltask->tests->test as $actualtest) {
                 if ($id === (string) $actualtest['id']) {
                     $tasktest = $actualtest;
                     break;
@@ -745,17 +769,17 @@ class qformat_proforma extends qformat_default {
             }
         }
 
-        $qo->gradinghints = (string) ($task->{'grading-hints'}->asXML());
+        $qo->gradinghints = (string) ($xmltask->{'grading-hints'}->asXML());
         $qo->aggregationstrategy = qtype_proforma::WEIGHTED_SUM;
     }
 
     /**
      * import submission restrictions version 2
      * @param $qo
-     * @param SimpleXMLElement $xmltask
+     * @param ProformaXMLElement $xmltask
      * @throws Exception
      */
-    protected function import_submission_restrictions_v2($qo, SimpleXMLElement $xmltask) {
+    protected function import_submission_restrictions_v2($qo, ProformaXMLElement $xmltask) {
         $maxbytes = $xmltask->{'submission-restrictions'}['max-size'];
         $qo->maxbytes = 0; // set default
         if (isset($maxbytes)) { // is set

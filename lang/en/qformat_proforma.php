@@ -34,7 +34,7 @@ $string['missingfileintask'] = 'File \'{$a}\' is referenced in task but is not a
 $string['notsupported'] = 'Sorry! The task file contains an unsupported ProFormA feature: ';
 $string['inconsistenttest'] = 'The task file is inconsistent. could not find test id "{a}" in tests';
 $string['invalidxml'] = 'The task file does not contain valid xml.';
-$string['namespacenotfound'] = 'The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported. Supported versions are 1.0.1 and 2.0.';
+$string['namespacenotfound'] = 'The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported. Supported versions are 1.0.1, 2.0 and 2.0.1.';
 $string['noproformafile'] = 'The file is not a ProFormA file (xml or zip).';
 $string['privacy:metadata'] = 'The ProFormA question format plugin does not store any personal data.';
 
