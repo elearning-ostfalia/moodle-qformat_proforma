@@ -15,7 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * ProformaXMLElement extended for simpler namespace handling
+ * ProformaXMLElement: SimpleXMLElement extended for handling one fixed namespace
+ *
  *
  * @package    qformat_proforma
  * @copyright  2020 Ostfalia Hochschule fuer angewandte Wissenschaften
@@ -23,25 +24,45 @@
  * @author     K.Borm <k.borm[at]ostfalia.de>
  */
 
-
-class ProformaXMLElement /* extends SimpleXMLElement */ implements ArrayAccess, Countable {
+/**
+ * Class ProformaXMLElement.
+ * In order to simplify accessing xml elements with namespace
+ * this class provides functions that hide the namespace parameter
+ * by keeping an internal namespace attribute. Thus access with the default
+ * namespace (set in constructor) is as simple as access with no namespace
+ * with the SimpleXMLElement.
+ * Unfortunately almost the whole interface of SimpleXMLElement must be
+ * recreated. Extending SimpleXMLElement is not possible.
+ */
+class ProformaXMLElement  /* extends SimpleXMLElement */
+        implements ArrayAccess, Countable, Iterator{
     /**  Simple XML element instance */
     private $element = null;
 
     /** @var null ProFormA namespace used in SimpleXMLElement */
     private $namespace = null;
 
+    /** @var null cursor for iterating */
+    private $cursor = null;
+
+    /**
+     * ProformaXMLElement constructor.
+     *
+     * @param SimpleXMLElement $element
+     * @param $namespace
+     */
     public function __construct(SimpleXMLElement $element, $namespace) {
         $this->element = $element;
         $this->namespace = $namespace;
     }
 
+    /**
+     * returns the child element(s) with a given tagname
+     * @param $name
+     * @return array|ProformaXMLElement|SimpleXMLElement
+     */
     public function __get($name) {
-        // echo "Getting '$name'";
-        // $children = $this->element->children($this->namespace);
         $child = $this->element->children($this->namespace)->$name;
-        // echo " '" . get_class($child) . "'";
-        // echo " count=" . count($child) . PHP_EOL;
         switch (count($child)) {
             case 0:
                 break;
@@ -60,7 +81,9 @@ class ProformaXMLElement /* extends SimpleXMLElement */ implements ArrayAccess, 
     }
 
     /**
-     * @inheritDoc
+     * @param mixed $offset
+     * @return bool|void
+     * @throws coding_exception
      */
     public function offsetExists($offset) {
         // TODO: Implement offsetExists() method.
@@ -68,7 +91,9 @@ class ProformaXMLElement /* extends SimpleXMLElement */ implements ArrayAccess, 
     }
 
     /**
-     * @inheritDoc
+     * @param mixed $offset
+     * @param mixed $value
+     * @throws coding_exception
      */
     public function offsetSet($offset, $value) {
         // TODO: Implement offsetSet() method.
@@ -76,7 +101,8 @@ class ProformaXMLElement /* extends SimpleXMLElement */ implements ArrayAccess, 
     }
 
     /**
-     * @inheritDoc
+     * @param mixed $offset
+     * @throws coding_exception
      */
     public function offsetUnset($offset) {
         // TODO: Implement offsetUnset() method.
@@ -94,21 +120,78 @@ class ProformaXMLElement /* extends SimpleXMLElement */ implements ArrayAccess, 
     }
 
     /**
-     * @inheritDoc
+     * return number of elements
+     * @return int
      */
     public function count() {
         return count($this->element);
     }
 
+    /**
+     * convert to xml string
+     * @param null $filename
+     * @return mixed
+     */
     public function asXML ($filename = null) {
         return $this->element->asXML();
     }
 
+    /**
+     * add child element
+     * @param $name: name of chile
+     * @param null $value: value of child
+     * @param null $namespace: namespace of child
+     * @return SimpleXMLElement: new element
+     */
     public function addChild ($name, $value = null, $namespace = null) {
         return $this->element->addChild($name, $value, $namespace);
     }
 
+    /**
+     * convert to string
+     * @return string
+     */
     public function __toString () {
         return $this->element->__toString();
+    }
+
+    /**
+     * Iterator interface: return element at cursor position
+     * @return mixed|ProformaXMLElement
+     */
+    public function current() {
+        return new ProformaXMLElement($this->cursor, $this->namespace);
+    }
+
+    /**
+     * Iterator interface: increment cursor
+     */
+    public function next() {
+        $this->cursor = null;
+    }
+
+    /**
+     * Iterator interface?
+     * @return bool|float|int|string|void|null
+     * @throws coding_exception
+     */
+    public function key() {
+        // TODO: Implement key() method.
+        throw new coding_exception('not implemented key');
+    }
+
+    /**
+     * Iterator interface: is cursor valid?
+     * @return bool
+     */
+    public function valid() {
+         return ($this->cursor != null);
+    }
+
+    /**
+     * Iterator interface: reset cursor
+     */
+    public function rewind() {
+        $this->cursor = $this->element;
     }
 }

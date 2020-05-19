@@ -64,6 +64,12 @@ class qformat_proforma extends qformat_default {
 
     /** @var null ProFormA namespace of task */
     private $namespace = null;
+
+    /**
+     * @var array cache with filenames
+     */
+    private $files = array();
+
     /**
      * checks if a given file can be imported (check filename xtension)
      * @param stored_file $file
@@ -335,8 +341,12 @@ class qformat_proforma extends qformat_default {
      * @param SimpleXMLElement $xmltask
      * @param $taskfilepath
      * @return object
+     * @throws coding_exception
+     * @throws Exception
      */
     protected function import_question(SimpleXMLElement $xmltask, $taskfilepath) {
+        // Reset filename cache.
+        $this->files = array();
         // This routine initialises the question object.
         $qo = $this->defaultquestion();
 
@@ -371,20 +381,21 @@ class qformat_proforma extends qformat_default {
                 $qo->name = (string) $xmltask->{'meta-data'}->title;
                 $this->questionname = $qo->name;
                 $this->import_files_v1($qo, $xmltask);
-                // instead of grading hints import tests (for title)
-                // for base of creating simple grading hints by teacher
-                $this->create_grading_hints_v1($qo, $xmltask);
+                // task version 1.0.1 does not contain grading hints
+                $this->create_simple_lms_grading_hints($qo, $xmltask);
                 $this->import_submission_restrictions_v1($qo, $xmltask);
                 break;
             case self::VERSION_V2:
                 $qo->name = (string) $xmltask->title;
                 $this->questionname = $qo->name;
                 $this->import_files_v2($qo, $xmltask);
-                $this->import_grading_hints_v2($qo, $xmltask);
+                if (!$this->import_grading_hints_v2($qo, $xmltask)) {
+                    $this->create_simple_lms_grading_hints($qo, $xmltask);
+                }
                 $this->import_submission_restrictions_v2($qo, $xmltask);
                 break;
             default:
-                throw coding_exception('no version found');
+                throw new coding_exception('no version found');
         }
 
         $qo->taskfilename = $this->taskfilename;
@@ -546,8 +557,7 @@ class qformat_proforma extends qformat_default {
      * @param $qo
      * @param ProformaXMLElement $task
      */
-    protected function create_grading_hints_v1($qo, ProformaXMLElement $task) {
-        // task version 1.0.1 does not contain grading hints
+    protected function create_simple_lms_grading_hints($qo, ProformaXMLElement $task) {
         $xw = new SimpleXmlWriter();
         $xw->openMemory();
 
@@ -565,7 +575,7 @@ class qformat_proforma extends qformat_default {
         foreach ($task->tests->test as $test) {
             $xw->startElement('test-ref');
             $xw->create_attribute('ref', (string) $test['id']); // $id);
-            $xw->create_attribute('weight', '-1');
+            $xw->create_attribute('weight', '1');
             $xw->create_childelement_with_text('title', (string) $test->title);
             $xw->create_childelement_with_text('test-type', (string) $test->{'test-type'});
             $xw->endElement(); // test-ref
@@ -679,6 +689,8 @@ class qformat_proforma extends qformat_default {
                 }
             }
 
+            // Build filename cache
+            $this->files[$fileid] = $filename;
             switch ($usagebylms) {
                 case 'edit':
                     // Handle code snippet for editor.
@@ -735,12 +747,27 @@ class qformat_proforma extends qformat_default {
      *
      * @param $qo
      * @param ProformaXMLElement $xmltask
+     * @return bool: true on success
      * @throws Exception
      */
     protected function import_grading_hints_v2($qo, ProformaXMLElement $xmltask) {
 
-        $validgradinghints = true;
-        foreach ($xmltask->{'grading-hints'}->root->{'test-ref'} as $test) {
+        $gradinghints = $xmltask->{'grading-hints'};
+        if (count($gradinghints) != 1) {
+            $this->warning('complex grading hints are not supported => ignored');
+            return false;
+        }
+
+        $root = $gradinghints->root;
+        if (count($root) != 1) {
+            $this->warning('complex grading hints are not supported => ignored');
+            return false;
+        }
+        if ((string)$root['function'] != 'sum') {
+            $this->warning('only weighted sum in grading hints is supported => grading hints are ignored');
+            return false;
+        }
+        foreach ($root->{'test-ref'} as $test) {
             $id = (string) ($test['ref']);
             $tasktest = null;
             foreach ($xmltask->tests->test as $actualtest) {
@@ -760,10 +787,10 @@ class qformat_proforma extends qformat_default {
                 // merge test data into grading hints
                 $test->addChild("title", (string) $tasktest->title);
                 $test->addChild("test-type", (string) $tasktest->{'test-type'});
-                if (isset($tasktest->description)) {
+                if (count($tasktest->description) > 0) {
                     $test->addChild("description", (string) $tasktest->description);
                 }
-                if (isset($tasktest->{'internal-description'})) {
+                if (count($tasktest->{'internal-description'}) > 0) {
                     $test->addChild("internal-description", (string) $tasktest->{'internal-description'});
                 }
             }
@@ -771,8 +798,105 @@ class qformat_proforma extends qformat_default {
 
         $qo->gradinghints = (string) ($xmltask->{'grading-hints'}->asXML());
         $qo->aggregationstrategy = qtype_proforma::WEIGHTED_SUM;
+        return true;
     }
 
+    /**
+     * check filename for response options
+     * @param $filename
+     * @param $extensions
+     * @return bool: if binary file is detected
+     */
+    protected function check_response_filename($filename, &$extensions) {
+        // Find extension.
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        $isbinary = false;
+        if (strlen($extension) > 0) { // ignore files with no extension
+            // Check extension for binary files.
+            $binfile = array("zip", "gzip", "gz", "tar");
+            if (in_array(strtolower($extension), $binfile)) {
+                $isbinary = true;
+            }
+            if (array_search('.' . $extension, $extensions) === false) {
+                $extensions[] = '.' . $extension;
+            }
+        }
+        return $isbinary;
+    }
+
+    /**
+     * if no submission restrictions are found then the response options
+     * must be created from a model solution (if one is available).
+     *
+     * @param $qo
+     * @param ProformaXMLElement $xmltask
+     * @throws coding_exception
+     */
+    protected function create_response_options_from_modelsolution($qo, ProformaXMLElement $xmltask) {
+        // Pick first model solution (even if more than one is availbale).
+        $modelsolution = $xmltask->{'model-solutions'}->{'model-solution'};
+        switch (count($modelsolution)) {
+            case 0:
+                // No model solution found.
+                $qo->responseformat = 'filepicker';
+                $qo->attachments = -1;
+                return;
+            case 1:
+                break;
+            default:
+                // special handling for ProformaXMLElement class :-(
+                $modelsolution = $modelsolution[0];
+                break;
+        }
+
+        $count = 0;
+        $extensions = array();
+        $filename = null;
+        $binary = false;
+        foreach ($modelsolution->filerefs->fileref as $msref) {
+            $id = (string) $msref['refid'];
+            $count++;
+            $filename = $this->files[$id];
+            $binary = $this->check_response_filename($filename, $extensions);
+        }
+        $extensions = implode(';', $extensions);
+        $this->set_response_options($qo, $count, $filename, $binary, $extensions);
+    }
+
+    /**
+     * set response options depending on values found in submission restrictions
+     * or model solution
+     * @param $qo: question object
+     * @param $count: number of files found (in model solution or restriction)
+     * @param $filename: the one and only filename found
+     * @param $filepicker: force filepicker
+     * @throws coding_exception
+     */
+    protected function set_response_options($qo, $count, $filename, $filepicker, $extensions) {
+        if (!$filepicker) {
+            $qo->responseformat = 'editor';
+            $qo->responsefieldlines = 15;
+            $qo->attachments = 0;
+            $qo->responsefilename = $filename;
+        } else {
+            $qo->responseformat = 'filepicker';
+            $qo->filetypes = $extensions;
+            switch ($count) {
+                case 0:
+                    throw new coding_exception('count = 0');
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                    $qo->attachments = $count;
+                    break;
+                default:
+                    $qo->attachments = -1;
+                    break;
+            }
+        }
+    }
     /**
      * import submission restrictions version 2
      * @param $qo
@@ -790,42 +914,30 @@ class qformat_proforma extends qformat_default {
         $extensions = array();
         $count = 0;
         $filepicker = false;
+        $filename = null;
         foreach ($xmltask->{'submission-restrictions'}->{'file-restriction'} as $restriction) {
             $filename = (string) $restriction;
             if ($restriction['pattern-format'] === 'posix-ere') {
                 // we cannot evaluate this format right now
                 $qo->filetypes = '';
                 $qo->responseformat = 'filepicker';
-                $qo->attachments = 5;
+                $qo->attachments = -1;
                 return;
             }
-            // find extension
-            $extension = pathinfo($filename, PATHINFO_EXTENSION);
-            if (strlen($extension) > 0) { // ignore files with no extension
-                // check extension for binary files
-                $binfile = array("zip", "gzip", "gz", "tar");
-                if (in_array(strtolower($extension), $binfile)) {
-                    $filepicker = true;
-                }
-                if (array_search('.' . $extension, $extensions) === false) {
-                    $extensions[] = '.' . $extension;
-                }
-                $count++;
+            $archive = $this->check_response_filename($filename, $extensions);
+            if ($archive) {
+                $filepicker = true;
             }
+            $count++;
         }
         $qo->filetypes = implode(';', $extensions);
 
-        if ($count > 5) {
-            throw new Exception(get_string('notsupported', 'qformat_proforma') . 'more than 5 files in submission restriction');
-        }
-
-        if ($count <= 1 and !$filepicker) {
-            $qo->responseformat = 'editor';
-            $qo->responsefieldlines = 15;
-            $qo->attachments = 0;
+        if ($count == 0) {
+            // No restriction found.
+            // => look for model solution.
+            $this->create_response_options_from_modelsolution($qo, $xmltask);
         } else {
-            $qo->responseformat = 'filepicker';
-            $qo->attachments = $count;
+            $this->set_response_options($qo, $count, $filename, $filepicker, implode(';', $extensions));
         }
     }
 
