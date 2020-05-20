@@ -235,7 +235,6 @@ class qformat_proforma_test extends question_testcase {
      */
     protected function assert_java_task_1($question) {
 
-
         $expectedq = (object) array(
                 'questiontextformat' => FORMAT_HTML,
                 'generalfeedback' => '',
@@ -356,6 +355,81 @@ public class MyString {
         $this->assertEquals(1, $question->taskstorage);
         $this->assertEquals('2.0', $question->proformaversion);
         // todo: test files in file storage
+    }
+
+    public function test_import_task_2_0_1() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        // The importer echoes some errors, so we need to capture and check that.
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/task_2.01_prefix.xml');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        // Check that there were some expected errors.
+        $this->assertContains('task contains more than one model solution. None is imported!', $output);
+        $this->assertContains('complex grading hints are not supported => ignored', $output);
+
+        $this->assertEquals(1, count($questions));
+
+        $expectedq = (object) array(
+                'questiontextformat' => FORMAT_HTML,
+                'generalfeedback' => '',
+                'generalfeedbackformat' => FORMAT_MOODLE,
+                'qtype' => 'proforma',
+                'defaultmark' => 1,
+                'penalty' => 0.1,
+                'length' => 1,
+        );
+
+        $question = $questions[0];
+        $this->assert(new question_check_specified_fields_expectation($expectedq), $question);
+        $this->assertEquals($question->name, 'Task 2.0.1');
+        $this->assertEquals($question->questiontext, 'description of the task');
+        $this->assertEquals($question->qtype, 'proforma');
+
+        $this->assertEquals($question->uuid, '9a95419c-d12f-4e2b-9109-d498de235e86');
+        $this->assertEquals($question->programminglanguage, 'java');
+
+        $this->assertEquals(null, $question->modelsolution);
+        $this->assertEquals('Solution.java', $question->responsefilename);
+        $this->assertEquals('', $question->responsetemplate);
+        $this->assertEquals('', $question->downloads);
+        $this->assertEquals('', $question->templates);
+        $this->assertEquals('', $question->modelsolfiles);
+        $this->assertEquals(1, $question->aggregationstrategy);
+        $this->assertEquals(10240, $question->maxbytes);
+        $this->assertEquals('.java', $question->filetypes);
+        $this->assertEquals('editor', $question->responseformat);
+        $this->assertEquals('15', $question->responsefieldlines);
+        $this->assertEquals(0, $question->attachments);
+        $this->assertEquals(1, $question->taskstorage);
+        $this->assertEquals('2.0.1', $question->proformaversion);
+
+        $this->assertEquals('<?xml version="1.0" encoding="UTF-8"?>
+<grading-hints>
+ <root function="sum">
+  <test-ref ref="compile" weight="1">
+   <title>Compilation</title>
+   <test-type>java-compilation</test-type>
+  </test-ref>
+  <test-ref ref="junit" weight="1">
+   <title>JUnit test case</title>
+   <test-type>unittest</test-type>
+  </test-ref>
+  <test-ref ref="checkstyle" weight="1">
+   <title>Checkstyle</title>
+   <test-type>java-checkstyle</test-type>
+  </test-ref>
+ </root>
+</grading-hints>
+',
+                $question->gradinghints);
     }
 }
 

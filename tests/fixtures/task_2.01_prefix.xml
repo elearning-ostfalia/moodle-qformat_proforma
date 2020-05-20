@@ -1,0 +1,82 @@
+<?xml version="1.0" ?>
+<p:task xmlns:p="urn:proforma:v2.0.1" xmlns:u="urn:proforma:tests:unittest:v1.1" uuid="9a95419c-d12f-4e2b-9109-d498de235e86" lang="de">
+  <p:title>Task 2.0.1</p:title>
+  <p:description>description of the task</p:description>
+  <p:internal-description/>
+  <p:proglang version="1.8">java</p:proglang>
+  <p:submission-restrictions max-size="10000">
+    <p:file-restriction required="true" pattern-format="none">Solution.java</p:file-restriction>
+  </p:submission-restrictions>
+  <p:files>
+    <p:file id="junit" used-by-grader="true" visible="no">
+      <p:attached-bin-file>testcase.jar</p:attached-bin-file>
+    </p:file>
+    <p:file id="checkstyle" used-by-grader="true" visible="no">
+      <p:attached-bin-file>config.xml</p:attached-bin-file>
+    </p:file>
+    <p:file id="ms_correct" used-by-grader="false" visible="no">
+      <p:attached-bin-file>correct.zip</p:attached-bin-file>
+    </p:file>
+    <p:file id="ms_wrong" used-by-grader="false" visible="no">
+      <p:attached-bin-file>wrong.div.zip</p:attached-bin-file>
+    </p:file>
+  </p:files>
+  <p:model-solutions>
+    <p:model-solution id="correct">
+      <p:filerefs>
+        <p:fileref refid="ms_correct"></p:fileref>
+      </p:filerefs>
+    </p:model-solution>
+    <p:model-solution id="wrong">
+      <p:filerefs>
+        <p:fileref refid="ms_wrong"></p:fileref>
+      </p:filerefs>
+    </p:model-solution>
+  </p:model-solutions>
+  <p:tests>
+    <p:test id="compile">
+      <p:title>Compilation</p:title>
+      <p:test-type>java-compilation</p:test-type>
+      <p:test-configuration></p:test-configuration>
+    </p:test>
+    <p:test id="junit">
+      <p:title>JUnit test case</p:title>
+      <p:test-type>unittest</p:test-type>
+      <p:test-configuration>
+        <p:filerefs>
+          <p:fileref refid="junit"></p:fileref>
+        </p:filerefs>
+        <u:unittest framework="junit" version="5">
+          <u:entry-point>de.ostfalia.task2_0_1.test.Test</u:entry-point>
+        </u:unittest>
+      </p:test-configuration>
+    </p:test>
+    <p:test id="checkstyle">
+      <p:title>Checkstyle</p:title>
+      <p:test-type>java-checkstyle</p:test-type>
+      <p:test-configuration>
+        <p:filerefs>
+          <p:fileref refid="checkstyle"></p:fileref>
+        </p:filerefs>
+      </p:test-configuration>
+    </p:test>
+  </p:tests>
+    <p:grading-hints>
+      <p:root function="sum">
+        <p:title>Total</p:title>
+        <p:combine-ref weight="0.8" ref="basic"/>
+        <p:combine-ref weight="0.2" ref="advanced"/>
+      </p:root>
+      <p:combine id="basic" function="sum">
+        <p:title>Basic functionality</p:title>
+        <p:test-ref weight="0.1" ref="compile"/>
+        <p:test-ref weight="0.9" ref="junit"/>
+      </p:combine>
+      <p:combine id="advanced" function="min">
+        <p:title>Advanced style aspects</p:title>
+        <p:test-ref ref="checkstyle"/>
+      </p:combine>
+    </p:grading-hints>
+  <p:meta-data>
+  </p:meta-data>
+</p:task>
