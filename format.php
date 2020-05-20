@@ -715,7 +715,8 @@ class qformat_proforma extends qformat_default {
             if (count($modelsolution) > 1) {
                 if (!$modelsolutionwarning) {
                     $modelsolutionwarning = true;
-                    $this->warning('task contains more than one model solution. None is imported!');
+
+                    $this->warning(get_string('morethanonemodelsolution','qformat_proforma'));
                 }
             } else {
                 foreach ($modelsolution->filerefs->fileref as $msref) {
@@ -728,7 +729,7 @@ class qformat_proforma extends qformat_default {
                             if ($isembedded) {
                                 $qo->modelsolution = $content;
                             } else {
-                                $qo->modelsolution = file_get_contents($this->tempdir . '/' . $filename);
+                                $qo->modelsolution = ''; // file_get_contents($this->tempdir . '/' . $filename);
                             }
                             $qo->responsefilename = $filename;
                         }
@@ -755,17 +756,17 @@ class qformat_proforma extends qformat_default {
         $gradinghints = $xmltask->{'grading-hints'};
         $children = $gradinghints->children();
         if (count($children) != 1) {
-            $this->warning('complex grading hints are not supported => ignored');
+            $this->warning(get_string('complexgradinghints', 'qformat_proforma') . '(1)');
             return false;
         }
 
         $root = $gradinghints->root;
-        if (count($root) != 1) {
-            $this->warning('complex grading hints are not supported => ignored');
+        if ((string)$root['function'] != 'sum') {
+            $this->warning(get_string('complexgradinghints', 'qformat_proforma'). '(2)');
             return false;
         }
-        if ((string)$root['function'] != 'sum') {
-            $this->warning('only weighted sum in grading hints is supported => grading hints are ignored');
+        if (count($root->{'combine-ref'})> 0) {
+            $this->warning(get_string('complexgradinghints', 'qformat_proforma'). '(3)');
             return false;
         }
         foreach ($root->{'test-ref'} as $test) {

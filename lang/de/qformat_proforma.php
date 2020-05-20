@@ -34,6 +34,8 @@ $string['inconsistenttest'] = 'Die Aufgabendatei ist inkonsistent: Die Test-ID "
 $string['invalidxml'] = 'Die Aufgabendatei enthält kein gültiges XML.';
 $string['namespacenotfound'] = 'Die Aufgabendatei enthält keinen ProFormA-task oder die Version des ProFormA-Tasks wird nicht unterstützt. Unterstützte Versionen sind 1.0.1, 2.0 und 2.0.1.';
 $string['noproformafile'] = 'Die Datei ist keine ProFormA-Datei (xml oder zip).';
+$string['complexgradinghints'] = 'Als Bewertungsregel (Grading hints) wird nur die gewichtete Summe unterstützt.';
+$string['morethanonemodelsolution'] = 'Die Aufgabe enthält mehr als eine Musterlösung. Keine wird importiert!';
 $string['privacy:metadata'] = 'Das ProFormA Frageformat Plugin speichert keine personenbezogenen Daten.';
 
 

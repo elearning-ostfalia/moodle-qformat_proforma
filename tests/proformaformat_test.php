@@ -372,8 +372,8 @@ public class MyString {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('task contains more than one model solution. None is imported!', $output);
-        $this->assertContains('complex grading hints are not supported => ignored', $output);
+        $this->assertContains('Task contains more than one model solution. None is imported!', $output);
+        $this->assertContains('Grading hints other than weighted sum are not supported.', $output);
 
         $this->assertEquals(1, count($questions));
 
@@ -431,5 +431,98 @@ public class MyString {
 ',
                 $question->gradinghints);
     }
+
+    public function test_import_task_1_2_3() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        // The importer echoes some errors, so we need to capture and check that.
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/task_1.2.3.xml');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+        $this->assertContains('The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported.', $output);
+
+    }
+
+    public function test_import_zip_solution() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        // The importer echoes some errors, so we need to capture and check that.
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/task_zip_solution.zip');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        // Check that there were no errors.
+        $this->assertContains('Grading hints other than weighted sum are not supported.', $output);
+
+
+        $this->assertEquals(1, count($questions));
+
+
+        $expectedq = (object) array(
+                'questiontextformat' => FORMAT_HTML,
+                'generalfeedback' => '',
+                'generalfeedbackformat' => FORMAT_MOODLE,
+                'qtype' => 'proforma',
+                'defaultmark' => 1,
+                'penalty' => 0.1,
+                'length' => 1,
+        );
+
+        $question = $questions[0];
+        $this->assert(new question_check_specified_fields_expectation($expectedq), $question);
+        $this->assertEquals($question->name, 'Task 2.0.1');
+        $this->assertEquals($question->questiontext, 'description of the task');
+        $this->assertEquals($question->qtype, 'proforma');
+
+        $this->assertEquals($question->uuid, '9a95419c-d12f-4e2b-9109-d498de235e86');
+        $this->assertEquals($question->programminglanguage, 'java');
+
+        $this->assertEquals('correct.zip', $question->responsefilename);
+        $this->assertEquals('', $question->responsetemplate);
+        $this->assertEquals('', $question->downloads);
+        $this->assertEquals('', $question->templates);
+        $this->assertEquals('correct.zip', $question->modelsolfiles);
+        $this->assertEquals(1, $question->aggregationstrategy);
+        $this->assertEquals(10240, $question->maxbytes);
+        $this->assertEquals('.zip', $question->filetypes);
+        $this->assertEquals('filepicker', $question->responseformat);
+        $this->assertEquals(1, $question->attachments);
+        $this->assertEquals(1, $question->taskstorage);
+        $this->assertEquals('2.0.1', $question->proformaversion);
+
+        $this->assertEquals('<?xml version="1.0" encoding="UTF-8"?>
+<grading-hints>
+ <root function="sum">
+  <test-ref ref="compile" weight="1">
+   <title>Compilation</title>
+   <test-type>java-compilation</test-type>
+  </test-ref>
+  <test-ref ref="junit" weight="1">
+   <title>JUnit test case</title>
+   <test-type>unittest</test-type>
+  </test-ref>
+  <test-ref ref="checkstyle" weight="1">
+   <title>Checkstyle</title>
+   <test-type>java-checkstyle</test-type>
+  </test-ref>
+ </root>
+</grading-hints>
+',
+                $question->gradinghints);
+        $this->assertEquals('', $question->modelsolution);
+    }
+
 }
 
