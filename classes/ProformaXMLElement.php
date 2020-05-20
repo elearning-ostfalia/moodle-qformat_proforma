@@ -33,6 +33,8 @@
  * with the SimpleXMLElement.
  * Unfortunately almost the whole interface of SimpleXMLElement must be
  * recreated. Extending SimpleXMLElement is not possible.
+ * ...
+ * maybe simply removing the namespace prefix would be easier!
  */
 class ProformaXMLElement  /* extends SimpleXMLElement */
         implements ArrayAccess, Countable, Iterator{
@@ -193,5 +195,14 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      */
     public function rewind() {
         $this->cursor = $this->element;
+    }
+
+    /**
+     * forward children
+     * @param null $ns
+     * @param bool $is_prefix
+     */
+    public function children () {
+        return $this->element->children($this->namespace);
     }
 }

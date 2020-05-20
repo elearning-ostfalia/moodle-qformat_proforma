@@ -753,7 +753,8 @@ class qformat_proforma extends qformat_default {
     protected function import_grading_hints_v2($qo, ProformaXMLElement $xmltask) {
 
         $gradinghints = $xmltask->{'grading-hints'};
-        if (count($gradinghints) != 1) {
+        $children = $gradinghints->children();
+        if (count($children) != 1) {
             $this->warning('complex grading hints are not supported => ignored');
             return false;
         }
@@ -797,6 +798,8 @@ class qformat_proforma extends qformat_default {
         }
 
         $qo->gradinghints = (string) ($xmltask->{'grading-hints'}->asXML());
+        // Remove namespace prefix in order to keep the xml 'clean' for further handling.
+        $qo->gradinghints = preg_replace('/(<\/|<)[a-zA-Z]+:([a-zA-Z\-]+)/', '$1$2', $qo->gradinghints);
         $qo->aggregationstrategy = qtype_proforma::WEIGHTED_SUM;
         return true;
     }
