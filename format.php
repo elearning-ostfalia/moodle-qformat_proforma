@@ -33,6 +33,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/question/type/proforma/questiontype.php');
 require_once($CFG->dirroot . '/question/format/proforma/classes/ProformaXMLElement.php');
 
+
 class qformat_proforma extends qformat_default {
 
     /**
@@ -69,6 +70,13 @@ class qformat_proforma extends qformat_default {
      * @var array cache with filenames
      */
     private $files = array();
+
+
+    /**
+     * @var null model solution to be imported
+     * (null if there are more than one model solutions available)
+     */
+    private $modelsolution = null;
 
     /**
      * checks if a given file can be imported (check filename xtension)
@@ -347,6 +355,9 @@ class qformat_proforma extends qformat_default {
     protected function import_question(SimpleXMLElement $xmltask, $taskfilepath) {
         // Reset filename cache.
         $this->files = array();
+        // Reset model solution
+        $this->modelsolution = null;
+        $this->modelsolution_checked = false;
         // This routine initialises the question object.
         $qo = $this->defaultquestion();
 
@@ -388,6 +399,7 @@ class qformat_proforma extends qformat_default {
             case self::VERSION_V2:
                 $qo->name = (string) $xmltask->title;
                 $this->questionname = $qo->name;
+                $this->get_model_solution_v2($qo, $xmltask);
                 $this->import_files_v2($qo, $xmltask);
                 if (!$this->import_grading_hints_v2($qo, $xmltask)) {
                     $this->create_simple_lms_grading_hints($qo, $xmltask);
@@ -645,7 +657,35 @@ class qformat_proforma extends qformat_default {
     }
 
     /**
-     * import files from ProFormA version 2
+     * get type of file usage for given file
+     * @param ProformaXMLElement $file
+     * @return string|null
+     * @throws coding_exception
+     */
+    protected function belongs_to_modelsolution(ProformaXMLElement $file) {
+        // Check for model solution.
+        if (!$this->modelsolution_checked) {
+            throw new coding_exception('model solution is not set');
+        }
+
+        // Model solution is not unique.
+        if ($this->modelsolution === null) {
+            return false;
+        }
+
+        // Look for file in model solution file list.
+        $fileid = (string) $file['id'];
+        foreach ($this->modelsolution->filerefs->fileref as $msref) {
+            $msfileid = (string) $msref['refid'];
+            if ($fileid === $msfileid) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * import files (download, model solution...) from ProFormA version 2
      *
      * @param $qo
      * @param ProformaXMLElement $xmltask
@@ -659,7 +699,6 @@ class qformat_proforma extends qformat_default {
         $modelsolfiles = array();
         $qo->modelsol = null;
 
-        $modelsolutionwarning = false;
         foreach ($xmltask->files->file as $file) {
             $fileid = (string) $file['id'];
             $usagebylms = (string) $file['usage-by-lms'];
@@ -687,11 +726,13 @@ class qformat_proforma extends qformat_default {
                     $isembedded = false;
                     $filename = (string) $attached;
                 }
+                // todo: read content from attached file
             }
 
-            // Build filename cache
+            // Build filename cache.
             $this->files[$fileid] = $filename;
-            switch ($usagebylms) {
+            // Store file.
+            switch ((string) $file['usage-by-lms']) {
                 case 'edit':
                     // Handle code snippet for editor.
                     if (count($templates) === 0) {
@@ -707,33 +748,23 @@ class qformat_proforma extends qformat_default {
                 case 'download':
                     $this->store_download_file($content, $filename, $downloads, $qo->download, $isembedded);
                     break;
-
             }
-
-            // todo: read content from attached file
-            $modelsolution = $xmltask->{'model-solutions'}->{'model-solution'};
-            if (count($modelsolution) > 1) {
-                if (!$modelsolutionwarning) {
-                    $modelsolutionwarning = true;
-
-                    $this->warning(get_string('morethanonemodelsolution','qformat_proforma'));
-                }
-            } else {
-                foreach ($modelsolution->filerefs->fileref as $msref) {
-                    $msfileid = (string) $msref['refid'];
-                    if ($fileid === $msfileid) {
-                        // File belongs to model solution.
-                        $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $isembedded);
-                        if (empty($qo->modelsolution)) {
-                            // First referenced file is found.
-                            if ($isembedded) {
-                                $qo->modelsolution = $content;
-                            } else {
-                                $qo->modelsolution = ''; // file_get_contents($this->tempdir . '/' . $filename);
-                            }
-                            $qo->responsefilename = $filename;
-                        }
+            if ($this->belongs_to_modelsolution($file)) {
+                // File belongs to model solution.
+                if (count($modelsolfiles) == 0) {
+                    // First referenced file is found.
+                    if ($isembedded) {
+                        $qo->modelsolution = $content;
+                    } else {
+                        $qo->modelsolution = '';
                     }
+                    $qo->responsefilename = $filename;
+                    $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $isembedded);
+                } else {
+                    // More than one file belonging to model solution:
+                    // Do not store with filename and content
+                    $qo->modelsolution = '';
+                    $qo->responsefilename = '';
                 }
             }
         }
@@ -741,6 +772,20 @@ class qformat_proforma extends qformat_default {
         $qo->downloads = implode(',', $downloads);
         $qo->templates = implode(',', $templates);
         $qo->modelsolfiles = implode(',', $modelsolfiles);
+    }
+
+    protected function get_model_solution_v2($qo, ProformaXMLElement $xmltask) {
+        $this->modelsolution = null;
+        $this->modelsolution_checked = true;
+        $modelsolution = $xmltask->{'model-solutions'}->{'model-solution'};
+        if (count($modelsolution) > 1) {
+            // If there are more than one model solutions then do not import any of them.
+            $this->warning(get_string('morethanonemodelsolution', 'qformat_proforma'));
+            $qo->modelsolfiles = '';
+            return;
+        }
+
+        $this->modelsolution = $modelsolution;
     }
 
     /**
@@ -877,28 +922,27 @@ class qformat_proforma extends qformat_default {
      * @throws coding_exception
      */
     protected function set_response_options($qo, $count, $filename, $filepicker, $extensions) {
-        if (!$filepicker) {
+        if ($filepicker) {
+            $qo->responseformat = 'filepicker';
+            $qo->filetypes = $extensions;
+            if ($count == 0) {
+                // count must not be 0 when using filepicker.
+                throw new coding_exception('number of attachments is 0 when using filepicker');
+            }
+            if ($count == 1) {
+                // If there is only one file allowed then use it as responsefilename.
+                $qo->responsefilename = $filename;
+            }
+            if ($count > 5) {
+                // Maximimum is reached.
+                $count = -1;
+            }
+            $qo->attachments = $count;
+        } else {
             $qo->responseformat = 'editor';
             $qo->responsefieldlines = 15;
             $qo->attachments = 0;
             $qo->responsefilename = $filename;
-        } else {
-            $qo->responseformat = 'filepicker';
-            $qo->filetypes = $extensions;
-            switch ($count) {
-                case 0:
-                    throw new coding_exception('count = 0');
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 5:
-                    $qo->attachments = $count;
-                    break;
-                default:
-                    $qo->attachments = -1;
-                    break;
-            }
         }
     }
     /**

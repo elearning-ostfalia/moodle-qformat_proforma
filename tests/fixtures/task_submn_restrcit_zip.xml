@@ -1,11 +1,11 @@
 <?xml version="1.0" ?>
-<p:task xmlns:p="urn:proforma:v1.2.3" xmlns:u="urn:proforma:tests:unittest:v1.1" uuid="9a95419c-d12f-4e2b-9109-d498de235e86" lang="de">
+<p:task xmlns:p="urn:proforma:v2.0" xmlns:u="urn:proforma:tests:unittest:v1.1" uuid="9a95419c-d12f-4e2b-9109-d498de235e86" lang="de">
   <p:title>Task 2.0.1</p:title>
   <p:description>description of the task</p:description>
   <p:internal-description/>
   <p:proglang version="1.8">java</p:proglang>
   <p:submission-restrictions max-size="10000">
-    <p:file-restriction required="true" pattern-format="none">Solution.java</p:file-restriction>
+    <p:file-restriction required="true" pattern-format="none">Solution.zip</p:file-restriction>
   </p:submission-restrictions>
   <p:files>
     <p:file id="junit" used-by-grader="true" visible="no">
@@ -15,7 +15,15 @@
       <p:attached-bin-file>config.xml</p:attached-bin-file>
     </p:file>
     <p:file id="ms_correct" used-by-grader="false" visible="no">
-      <p:attached-bin-file>correct.zip</p:attached-bin-file>
+	<p:embedded-txt-file filename="correct.zip"><![CDATA[package de.ostfalia.zell.isPalindromTask;
+public class MyString {
+	
+	static public Boolean isPalindrom(String aString) 
+	{
+		// ...
+	}
+}
+]]></p:embedded-txt-file>
     </p:file>
     <p:file id="ms_wrong" used-by-grader="false" visible="no">
       <p:attached-bin-file>wrong.div.zip</p:attached-bin-file>
@@ -25,11 +33,6 @@
     <p:model-solution id="correct">
       <p:filerefs>
         <p:fileref refid="ms_correct"></p:fileref>
-      </p:filerefs>
-    </p:model-solution>
-    <p:model-solution id="wrong">
-      <p:filerefs>
-        <p:fileref refid="ms_wrong"></p:fileref>
       </p:filerefs>
     </p:model-solution>
   </p:model-solutions>
