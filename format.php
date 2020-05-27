@@ -429,17 +429,15 @@ class qformat_proforma extends qformat_default {
 
         foreach ($task->files->file as $file) {
             $fileid = (string) $file['id'];
-            $fileclass = (string) $file['class'];
             $embedded = (string) $file['type'] === 'embedded';
             $content = (string) $file;
             $filename = (string) $file['filename'];
-            switch ($fileclass) {
+            switch ((string) $file['class']) {
                 case 'internal':
                 case 'internal-library':
                     // Check for model solution.
                     foreach ($task->{'model-solutions'}->{'model-solution'}->filerefs->fileref as $msref) {
-                        $msfileid = (string) $msref['refid'];
-                        if ($fileid === $msfileid) {
+                        if ($fileid === (string) $msref['refid']) {
                             // File belongs to model solution.
                             $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $embedded);
                             if (empty($qo->modelsolution)) {
@@ -651,8 +649,7 @@ class qformat_proforma extends qformat_default {
         // Look for file in model solution file list.
         $fileid = (string) $file['id'];
         foreach ($this->modelsolution->filerefs->fileref as $msref) {
-            $msfileid = (string) $msref['refid'];
-            if ($fileid === $msfileid) {
+            if ($fileid === (string) $msref['refid']) {
                 return true;
             }
         }
@@ -991,10 +988,10 @@ class qformat_proforma extends qformat_default {
      * @param string $questionname
      */
     protected function warning($message, $text = '', $questionname = '') {
-        $importwarningquestion = get_string('importwarningquestion', 'qformat_proforma');
+        $warning = get_string('importwarningquestion', 'qformat_proforma');
 
         echo "<div class=\"importerror\">\n";
-        echo "<strong>{$importwarningquestion} {$questionname}</strong>";
+        echo "<strong>{$warning} {$questionname}</strong>";
         if (!empty($text)) {
             $text = s($text);
             echo "<blockquote>{$text}</blockquote>\n";
