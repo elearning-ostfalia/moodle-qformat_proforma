@@ -1,4 +1,4 @@
-@qtype @qtype_proforma @qformat_proforma
+@qformat @qtype_proforma @qformat_proforma
 Feature: IMPORT (ProFormA format)
   Test importing ProFormA questions
   As a teacher
