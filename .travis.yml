@@ -75,8 +75,17 @@ before_install:
   # This disables XDebug which should speed up the build.
   - phpenv config-rm xdebug.ini
   # This installs NodeJS which is used by Grunt, etc.
-  - nvm install 14.3
-  - nvm use 14.3
+  # nvm 14.3 for Moodle 3.7 and later
+  - >
+    if [ "$MOODLE_BRANCH" = 'MOODLE_36_STABLE' ];
+    then
+      nvm install 8.9
+      nvm use 8.9
+    else
+      nvm install 14.3
+      nvm use 14.3
+    fi
+  # nvm Version 8.9 for Moodle 3.6
 #  - nvm install 8.9
 #  - nvm use 8.9
   # Currently we are inside of the clone of your repository.  We move up two
