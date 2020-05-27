@@ -893,7 +893,7 @@ class qformat_proforma extends qformat_default {
             $qo->responseformat = 'filepicker';
             $qo->filetypes = $extensions;
             if ($count == 0) {
-                // count must not be 0 when using filepicker.
+                // number of files (= count) must not be 0 when using filepicker.
                 throw new coding_exception('number of attachments is 0 when using filepicker');
             }
             if ($count == 1) {
@@ -920,9 +920,9 @@ class qformat_proforma extends qformat_default {
      */
     protected function import_submission_restrictions_v2($qo, ProformaXMLElement $xmltask) {
         $maxbytes = $xmltask->{'submission-restrictions'}['max-size'];
-        $qo->maxbytes = 0; // set default
-        if (isset($maxbytes)) { // is set
-            // determine matching value from choices array
+        $qo->maxbytes = 0; // Set default.
+        if (isset($maxbytes)) { // Is set?
+            // Determine matching value from choices array.
             $this->set_max_bytes_choices($qo, (string) $maxbytes);
         }
 
@@ -933,7 +933,8 @@ class qformat_proforma extends qformat_default {
         foreach ($xmltask->{'submission-restrictions'}->{'file-restriction'} as $restriction) {
             $filename = (string) $restriction;
             if ($restriction['pattern-format'] === 'posix-ere') {
-                // we cannot evaluate this format right now
+                // Regular expressions are currently not supported.
+                $this->warning('Regular expressions in submission restriction are currently not supported.');
                 $qo->filetypes = '';
                 $qo->responseformat = 'filepicker';
                 $qo->attachments = -1;
@@ -976,7 +977,7 @@ class qformat_proforma extends qformat_default {
                 'filepath' => '/',
                 'filename' => $filename,
         );
-        $fs->create_file_from_pathname($filerecord, $taskfilepath); // $this->tempdir . '/' . $filename);
+        $fs->create_file_from_pathname($filerecord, $taskfilepath);
         return $itemid;
     }
 
