@@ -24,9 +24,9 @@
  */
 
 
-// todo:
+// Todo:
 // - use polymorphy (inheritance for supporting different ProFormA versions)
-// - check if classes from qtype_proforma can be reused
+// - check if classes from qtype_proforma can be reused???
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -94,8 +94,8 @@ class qformat_proforma extends qformat_default {
      * @return bool true
      */
     public function provide_import() {
-        global $CFG;
-        // Disable import if the ProFormA question type does not exist
+        // global $CFG;
+        // Disable import if the ProFormA question type does not exist:
         // return file_exists($CFG->dirroot.'/question/type/proforma/version.php');
         return true;
     }
@@ -162,7 +162,7 @@ class qformat_proforma extends qformat_default {
                 throw new Exception(get_string('noproformafile', 'qformat_proforma'));
             }
 
-            // We have got a ZIP file:
+            // We have got a ZIP file.
             $taskfiles = array();
             $zipfiles = array();
             $otherfiles = array();
@@ -192,7 +192,7 @@ class qformat_proforma extends qformat_default {
             $result = array();
             switch (count($taskfiles)) {
                 case 0:
-                    // We have got a zipped file containing zipped ProFormA tasks:
+                    // We have got a zipped file containing zipped ProFormA tasks.
                     if (count($otherfiles) > 0 or count($zipfiles) == 0) {
                         // No proforma file.
                         throw new Exception(get_string('noproformafile', 'qformat_proforma'));
@@ -215,10 +215,9 @@ class qformat_proforma extends qformat_default {
                     }
                     break;
                 case 1:
-                    // We have got a zippd task file:
+                    // We have got a zippd task file.
                     // Return full path of task.xml file.
-                    $filedata = array('.', file($this->tempdir . '/' . $taskfiles[0]));
-                    $result[] = $filedata;
+                    $result[] = array('.', file($this->tempdir . '/' . $taskfiles[0]));
                     return $result;
                 default:
                     // Should be unreachable code.
@@ -293,9 +292,6 @@ class qformat_proforma extends qformat_default {
                 $questions[] = $qo;
             }
         } catch (Exception $e) {
-            // global $OUTPUT;
-            // $OUTPUT->notification(get_string('noproformafile', 'qformat_proforma'));
-            // echo $OUTPUT->notification($e->getMessage());
             $this->error($e->getMessage(), '', '"' . $this->questionname . '": ');
         } finally {
             $this->tempdir = $basetemp;
@@ -320,14 +316,14 @@ class qformat_proforma extends qformat_default {
         }
         $this->xpath = new DOMXPath($xmldoc);
 
-        $supported_versions = array(
+        $versions = array(
                 array('urn:proforma:task:v1.0.1', '1.0.1', self::VERSION_V1),
                 array('urn:proforma:v2.0', '2.0', self::VERSION_V2),
                 array('urn:proforma:v2.0.1', '2.0.1', self::VERSION_V2),
         );
 
         $index = 1;
-        foreach ($supported_versions as $version) {
+        foreach ($versions as $version) {
             $prefix = 'dns' . $index;
             // Register supported version...
             $this->xpath->registerNamespace($prefix, $version[0]);
@@ -355,12 +351,11 @@ class qformat_proforma extends qformat_default {
     protected function import_question(SimpleXMLElement $xmltask, $taskfilepath) {
         // Reset filename cache.
         $this->files = array();
-        // Reset model solution
-        $this->modelsolution = null;
         $this->modelsolution_checked = false;
         // This routine initialises the question object.
         $qo = $this->defaultquestion();
 
+        // Convert to wrapper class that handles the namespace.
         $xmltask = new ProformaXMLElement($xmltask, $this->namespace);
         // Description.
         $qo->questiontext = (string) $xmltask->description;
@@ -368,21 +363,17 @@ class qformat_proforma extends qformat_default {
 
         // Set default values for attributes that are not stored in ProFormA task.
         $qo->defaultmark = 1;
-        $qo->penalty = get_config('qtype_proforma', 'defaultpenalty'); // 0.1;
+        $qo->penalty = get_config('qtype_proforma', 'defaultpenalty');
         $qo->taskrepository = '';
         $qo->taskpath = '';
-
-        // Header parts particular to ProFormA.
         $qo->qtype = 'proforma';
 
         $qo->uuid = (string) $xmltask['uuid'];
 
-        // lowercase programming language
+        // Lowercase programming language.
         $qo->programminglanguage = strtolower((string) $xmltask->proglang);
 
-        // read model solution and filename from first model solution entity
         $qo->modelsolution = '';
-
         $qo->responsefilename = '???';
         $qo->responsetemplate = '';
 
@@ -392,7 +383,7 @@ class qformat_proforma extends qformat_default {
                 $qo->name = (string) $xmltask->{'meta-data'}->title;
                 $this->questionname = $qo->name;
                 $this->import_files_v1($qo, $xmltask);
-                // task version 1.0.1 does not contain grading hints
+                // Task version 1.0.1 does not contain grading hints => create simple one.
                 $this->create_simple_lms_grading_hints($qo, $xmltask);
                 $this->import_submission_restrictions_v1($qo, $xmltask);
                 break;
@@ -402,6 +393,7 @@ class qformat_proforma extends qformat_default {
                 $this->get_model_solution_v2($qo, $xmltask);
                 $this->import_files_v2($qo, $xmltask);
                 if (!$this->import_grading_hints_v2($qo, $xmltask)) {
+                    // Could not import grading hints => create simple one.
                     $this->create_simple_lms_grading_hints($qo, $xmltask);
                 }
                 $this->import_submission_restrictions_v2($qo, $xmltask);
@@ -412,9 +404,7 @@ class qformat_proforma extends qformat_default {
 
         $qo->taskfilename = $this->taskfilename;
         $qo->taskstorage = qtype_proforma::PERSISTENT_TASKFILE;
-        $itemid = -1;
         $qo->task = $this->store_task_file($qo->taskfilename, $taskfilepath);
-        // $qo->taskfiledraftid = $this->store_task_file($qo->taskfilename, $taskfilepath);
         $qo->taskpath = $qo->taskpath . '/' . $qo->taskfilename;
 
         $qo->comment = (string) $xmltask->{'internal-description'};
@@ -450,10 +440,10 @@ class qformat_proforma extends qformat_default {
                     foreach ($task->{'model-solutions'}->{'model-solution'}->filerefs->fileref as $msref) {
                         $msfileid = (string) $msref['refid'];
                         if ($fileid === $msfileid) {
-                            // file belongs to model solution
+                            // File belongs to model solution.
                             $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $embedded);
                             if (empty($qo->modelsolution)) {
-                                // first referenced file is found
+                                // First referenced file is found.
                                 if ($embedded) {
                                     $qo->modelsolution = $content;
                                 } else {
@@ -504,10 +494,6 @@ class qformat_proforma extends qformat_default {
      * @throws coding_exception
      */
     protected function store_download_file($content, $filename, &$list, &$draftitemid, $embedded) {
-        // todo: throw exception!
-
-        global $USER;
-
         if ($filename == -1) {
             throw new coding_exception('cannot create temporary file because of missing filename');
         }
@@ -523,44 +509,32 @@ class qformat_proforma extends qformat_default {
             $draftitemid = file_get_unused_draft_itemid();
         }
 
-        $fs = get_file_storage();
-        // old:
-        // $filepath = '/';
-        // $filename = $filename;
-        // new:
-        $path_parts = pathinfo('/'. $filename);
-        $filepath = $path_parts['dirname'];
-        $filename = $path_parts['basename'];
-        if  ($filepath[strlen($filepath) - 1] !== '/') {
+        // Split filename into dirname and basename (stored separately).
+        $pathinfo = pathinfo('/'. $filename);
+        $filepath = $pathinfo['dirname'];
+        $filename = $pathinfo['basename'];
+        if ($filepath[strlen($filepath) - 1] !== '/') {
             $filepath = $filepath . '/';
         }
 
+        global $USER;
+        // Prepare file record object.
+        $fileinfo = array(
+                'contextid' => context_user::instance($USER->id)->id,
+                'component' => 'user',
+                'filearea' => 'draft',
+                'itemid' => $draftitemid,
+                'filepath' => $filepath,
+                'filename' => $filename);
+        $fs = get_file_storage();
         if ($embedded) {
-            // Prepare file record object
-            $fileinfo = array(
-                    'contextid' => context_user::instance($USER->id)->id, // ID of context
-                    'component' => 'user',     // usually = table name
-                    'filearea' => 'draft',     // usually = table name
-                    'itemid' => $draftitemid,               // usually = ID of row in table
-                    'filepath' => $filepath,           // any path beginning and ending in /
-                    'filename' => $filename); // any filename
-
             /*$storedfile = */
             $fs->create_file_from_string($fileinfo, $content);
         } else {
             if (!is_readable($this->tempdir . $filepath . $filename)) {
                 throw new Exception(get_string('missingfileintask', 'qformat_proforma', $filename));
             }
-            $filerecord = array(
-                    'contextid' => context_user::instance($USER->id)->id,
-                    'component' => 'user',
-                    'filearea' => 'draft',
-                    'itemid' => $draftitemid,
-                    'filepath' => $filepath,
-                    'filename' => $filename,
-            );
-            $fs->create_file_from_pathname($filerecord, $this->tempdir . $filepath . $filename);
-
+            $fs->create_file_from_pathname($fileinfo, $this->tempdir . $filepath . $filename);
         }
     }
 
@@ -586,15 +560,15 @@ class qformat_proforma extends qformat_default {
 
         foreach ($task->tests->test as $test) {
             $xw->startElement('test-ref');
-            $xw->create_attribute('ref', (string) $test['id']); // $id);
+            $xw->create_attribute('ref', (string) $test['id']);
             $xw->create_attribute('weight', '1');
             $xw->create_childelement_with_text('title', (string) $test->title);
             $xw->create_childelement_with_text('test-type', (string) $test->{'test-type'});
-            $xw->endElement(); // test-ref
+            $xw->endElement(); // Element test-ref.
         }
 
-        $xw->endElement(); // root
-        $xw->endElement(); // grading-hints
+        $xw->endElement(); // Element root.
+        $xw->endElement(); // Element grading-hints.
 
         $xw->endDocument();
         $qo->gradinghints = $xw->outputMemory();
@@ -607,24 +581,24 @@ class qformat_proforma extends qformat_default {
      * @param ProformaXMLElement $task
      */
     protected function import_submission_restrictions_v1($qo, ProformaXMLElement $task) {
-        // read upload sizes (unit is kB)
+        // Read upload size (unit is kB).
         $maxbytes = (string) $task->{'submission-restrictions'}->{'regexp-restriction'}['max-size'];
-        $qo->maxbytes = 0; // set default
-        if ($maxbytes > 0) { // is set
-            $maxbytes = $maxbytes * 1024;
-            // determine matching value from choices array
+        $qo->maxbytes = 0; // Set default.
+        if ($maxbytes > 0) { // Is set?
+            $maxbytes = $maxbytes * 1024; // Convert to bytes.
+            // Determine matching value from choices array.
             $this->set_max_bytes_choices($qo, $maxbytes);
         }
 
         $filetype = (string) $task->{'submission-restrictions'}->{'regexp-restriction'}['mime-type-regexp'];
         $pos = strpos($filetype, 'text');
         if ($pos === false) {
-            // no text format => use filepicker but do not set mime type
+            // No text format => use filepicker but do not set mime type.
             $qo->filetypes = '';
             $qo->responseformat = 'filepicker';
             $qo->attachments = 1;
         } else {
-            // text format => use editor and set mime type
+            // Text format => use editor and set mime type.
             $qo->filetypes = 'text/plain';
             $qo->responseformat = 'editor';
             $qo->responsefieldlines = 15;
@@ -644,7 +618,7 @@ class qformat_proforma extends qformat_default {
         $choices = get_max_upload_sizes($CFG->maxbytes, $COURSE->maxbytes,
                 get_config('qtype_proforma', 'maxbytes'));
         foreach (array_keys($choices) as $choice) {
-            if ($choice > 0 && $choice > $maxbytes) { // $choice = 0 means unlimited
+            if ($choice > 0 && $choice > $maxbytes) { // Value $choice = 0 means unlimited.
                 if ($qo->maxbytes == 0) {
                     $qo->maxbytes = $choice;
                 } else {
@@ -657,9 +631,10 @@ class qformat_proforma extends qformat_default {
     }
 
     /**
-     * get type of file usage for given file
+     * checks if a given file element belongs to the model solution
+     * which means it must be saved.
      * @param ProformaXMLElement $file
-     * @return string|null
+     * @return boolean
      * @throws coding_exception
      */
     protected function belongs_to_modelsolution(ProformaXMLElement $file) {
@@ -701,7 +676,6 @@ class qformat_proforma extends qformat_default {
 
         foreach ($xmltask->files->file as $file) {
             $fileid = (string) $file['id'];
-            $usagebylms = (string) $file['usage-by-lms'];
             // $visible = (string)$file['visible'];
 
             $content = 'TBD: EXTERN';
@@ -726,7 +700,7 @@ class qformat_proforma extends qformat_default {
                     $isembedded = false;
                     $filename = (string) $attached;
                 }
-                // todo: read content from attached file
+                // Todo: read content from attached file.
             }
 
             // Build filename cache.
@@ -810,7 +784,7 @@ class qformat_proforma extends qformat_default {
             $this->warning(get_string('complexgradinghints', 'qformat_proforma'). '(2)');
             return false;
         }
-        if (count($root->{'combine-ref'})> 0) {
+        if (count($root->{'combine-ref'}) > 0) {
             $this->warning(get_string('complexgradinghints', 'qformat_proforma'). '(3)');
             return false;
         }
@@ -823,10 +797,6 @@ class qformat_proforma extends qformat_default {
                     break;
                 }
             }
-
-            // todo: what is wrong with that?
-            // $tasktest = $task->xpath("//tests/test[@id='" . $id . "']");
-            // $tasktest = $tasktest[0];
 
             if (!isset($tasktest)) {
                 throw new Exception(get_string('inconsistenttest', 'qformat_proforma', $id));
