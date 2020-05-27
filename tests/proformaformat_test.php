@@ -40,6 +40,9 @@ require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qformat_proforma_test extends question_testcase {
+    /**
+     * test preparation
+     */
     private function prepare_test() {
         // because we need to change the user it is necessary to
         // reset the test at the end in order to avoid an error message
@@ -49,6 +52,7 @@ class qformat_proforma_test extends question_testcase {
         $this->setAdminUser();
     }
 
+    /** simple task with file restriction, 1 downloadable file, Junit test with 1 file **/
     public function test_import_java_task_1_zip() {
         $this->prepare_test();
         // create proforma importer
@@ -63,6 +67,7 @@ class qformat_proforma_test extends question_testcase {
         $this->assert_java_task_1($questions[0]);
     }
 
+    /** simple task with 3 downloadable files, template, Junit test with 2 files **/
     public function test_import_java_task_2_zip() {
         $this->prepare_test();
         // create proforma importer
@@ -74,9 +79,12 @@ class qformat_proforma_test extends question_testcase {
         $questions = $importer->readquestions($result);
         $this->assertEquals(1, count($questions));
 
-        $this->assert_java_task_2($questions[0], 'cc1a0ff4-8550-49a9-b33b-4bc3cc30613f');
+        $this->assert_java_task_2($questions[0]);
     }
 
+    /**
+     * like test_import_java_task_2_zip, but task is only an xml file (no zip)
+     */
     public function test_import_java_task_2_xml() {
         $this->prepare_test();
         // create proforma importer
@@ -92,8 +100,7 @@ class qformat_proforma_test extends question_testcase {
     }
 
     /**
-     * test:
-     * - embedded bin file
+     * embedded bin file
      */
     public function test_import_embedded_bin_file_xml() {
         $this->prepare_test();
@@ -138,7 +145,9 @@ class qformat_proforma_test extends question_testcase {
         $this->assertEquals(false, $questions);
     }
 
-
+    /**
+     * task file with invalid xml syntax
+     */
     public function test_import_invalid_xml_xml() {
         $this->prepare_test();
         // create proforma importer
@@ -159,7 +168,9 @@ class qformat_proforma_test extends question_testcase {
         $this->assertEquals(false, $questions);
     }
 
-
+    /**
+     * empty task file extension (zip or xml expected)
+     */
     public function test_import_no_extension() {
         $this->prepare_test();
         // create proforma importer
@@ -176,7 +187,9 @@ class qformat_proforma_test extends question_testcase {
         $this->assertContains('The file is not a ProFormA file (xml or zip).', $output);
     }
 
-
+    /**
+     * zip file containing 2 task zip files
+     */
     public function test_import_java_archive() {
         $this->prepare_test();
         // create proforma importer
@@ -192,7 +205,9 @@ class qformat_proforma_test extends question_testcase {
         $this->assert_java_task_2($questions[0]);
     }
 
-
+    /**
+     * archive with tweo zip files: one cannot be imported because of missing referenced file
+     */
     public function test_import_java_archive_with_wrong_task() {
         $this->prepare_test();
         // create proforma importer
@@ -216,7 +231,7 @@ class qformat_proforma_test extends question_testcase {
     }
 
     /**
-     * tests: missing attached files referenced in task
+     * missing attached files referenced in task
      */
     public function test_read_missing_attached_file() {
         $this->prepare_test();
@@ -239,7 +254,8 @@ class qformat_proforma_test extends question_testcase {
     }
 
     /**
-     * @param $questions
+     * checks for valid task 1
+     * @param $questions stdClass imported question
      */
     protected function assert_java_task_1($question) {
 
@@ -302,7 +318,8 @@ public class MyString
     }
 
     /**
-     * @param $questions
+     * checks for valid task 2
+     * @param $questions stdClass imported question
      */
     protected function assert_java_task_2($question, $uuid = null) {
         $expectedq = (object) array(
@@ -366,10 +383,7 @@ public class MyString {
     }
 
     /**
-     * tests:
-     * - ProFormA version 2.0.1
-     * - complex grading hints
-     * - more than one model solution
+     * ProFormA version 2.0.1, complex grading hints, more than one model solution
      * @throws coding_exception
      */
     public function test_import_task_2_0_1() {
@@ -448,8 +462,7 @@ public class MyString {
     }
 
     /**
-     * tests:
-     * - submission restriction with zip
+     * file submission restriction containing a zip name
      */
     public function test_import_sr_zip() {
         $this->prepare_test();
@@ -530,8 +543,7 @@ public class MyString {
     }
 
     /**
-     * tests:
-     * - zip as model solution => filepicker
+     * zip as model solution => filepicker (no submission restrictions)
      * @throws coding_exception
      */
     public function test_import_zip_solution() {
@@ -605,6 +617,87 @@ public class MyString {
 ',
                 $question->gradinghints);
         $this->assertEquals('', $question->modelsolution);
+    }
+
+    /**
+     * task file version 1.0.1 with python tests
+     * @throws coding_exception
+     */
+    public function test_python_v1() {
+        $this->prepare_test();
+        // create proforma importer
+        $importer = new qformat_proforma();
+
+        // The importer echoes some errors, so we need to capture and check that.
+        ob_start();
+        $result = $importer->readdata(__DIR__ . '/fixtures/PythonFace_1.01.zip');
+        $this->assertNotEquals(false, $result);
+        $this->assertEquals(1, count($result));
+        $questions = $importer->readquestions($result);
+        $output = ob_get_contents();
+        ob_end_clean();
+
+        $this->assertEquals($output, '');
+        $this->assertEquals(1, count($questions));
+
+        $expectedq = (object) array(
+                'questiontextformat' => FORMAT_HTML,
+                'generalfeedback' => '',
+                'generalfeedbackformat' => FORMAT_MOODLE,
+                'qtype' => 'proforma',
+                'defaultmark' => 1,
+                'penalty' => 0.1,
+                'length' => 1,
+        );
+
+        $question = $questions[0];
+        $this->assert(new question_check_specified_fields_expectation($expectedq), $question);
+        $this->assertEquals('PythonGesicht', $question->name);
+        $this->assertEquals('Erzeugen Sie mit Python das folgende Gesicht:
+<pre>
+	\  |  /
+	  @ @
+	   *
+	 \"""/
+</pre>
+Tipps: Mit dem print-Befehl kann man eine Zeile erzeugen, z.B. print "Hello World".
+', $question->questiontext);
+        $this->assertEquals($question->qtype, 'proforma');
+
+        $this->assertEquals($question->uuid, 'fa51c550-0b20-48da-b370-00ed455eac7c');
+        $this->assertEquals($question->programminglanguage, 'python');
+
+        $this->assertEquals('gesicht.py', $question->responsefilename);
+        $this->assertEquals('', $question->responsetemplate);
+        $this->assertEquals('', $question->downloads);
+        $this->assertEquals('', $question->templates);
+        $this->assertEquals('gesicht.py', $question->modelsolfiles);
+        $this->assertEquals(1, $question->aggregationstrategy);
+        $this->assertEquals($question->maxbytes, 1048576);
+        $this->assertEquals('editor', $question->responseformat);
+        $this->assertEquals(0, $question->attachments);
+        $this->assertEquals(1, $question->taskstorage);
+        $this->assertEquals('1.0.1', $question->proformaversion);
+
+        $this->assertEquals('<?xml version="1.0" encoding="UTF-8"?>
+<grading-hints>
+ <root function="sum">
+  <test-ref ref="1" weight="1">
+   <title>Python Test</title>
+   <test-type>python</test-type>
+  </test-ref>
+ </root>
+</grading-hints>
+',
+                $question->gradinghints);
+        $this->assertEquals('print ("""
+\t\\\\  |  /
+\t  @ @
+\t   *
+\t \\\\\"\"\"/
+""")
+', $question->modelsolution);
+        $this->assertEquals('', $question->filetypes);
     }
 
 }

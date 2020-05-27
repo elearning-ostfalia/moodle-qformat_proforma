@@ -17,7 +17,6 @@
 /**
  * ProformaXMLElement: SimpleXMLElement extended for handling one fixed namespace
  *
- *
  * @package    qformat_proforma
  * @copyright  2020 Ostfalia Hochschule fuer angewandte Wissenschaften
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -27,14 +26,19 @@
 /**
  * Class ProformaXMLElement.
  * In order to simplify accessing xml elements with namespace
- * this class provides functions that hide the namespace parameter
+ * this class extends the SimpleXMLElement class
  * by keeping an internal namespace attribute. Thus access with the default
- * namespace (set in constructor) is as simple as access with no namespace
+ * namespace (set in constructor) is as simple as accessing data without namespace
  * with the SimpleXMLElement.
  * Unfortunately almost the whole interface of SimpleXMLElement must be
  * recreated. Extending SimpleXMLElement is not possible.
  * ...
- * maybe simply removing the namespace prefix would be easier!
+ * (simply removing the namespace prefix would be easier but not safe)
+ *
+ * @package    qformat_proforma
+ * @copyright  2020 Ostfalia Hochschule fuer angewandte Wissenschaften
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @author     K.Borm <k.borm[at]ostfalia.de>
  */
 class ProformaXMLElement  /* extends SimpleXMLElement */
         implements ArrayAccess, Countable, Iterator{
@@ -88,7 +92,6 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @throws coding_exception
      */
     public function offsetExists($offset) {
-        // TODO: Implement offsetExists() method.
         throw new coding_exception('not implemented offsetExists');
     }
 
@@ -98,7 +101,6 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @throws coding_exception
      */
     public function offsetSet($offset, $value) {
-        // TODO: Implement offsetSet() method.
         throw new coding_exception('not implemented offsetSet');
     }
 
@@ -107,15 +109,14 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @throws coding_exception
      */
     public function offsetUnset($offset) {
-        // TODO: Implement offsetUnset() method.
         throw new coding_exception('not implemented offsetUnset');
     }
 
-    /** OFFICIAL SimpleXMLElement
+    /**
      * Class provides access to children by position, and attributes by name
-     * @access private Method not callable directly, stub exists for typehint only
-     * @param string|int $offset
-     * @return SimpleXMLElement Either a named attribute or an element from a list of children
+     * delegate to element member
+     * @param mixed $offset
+     * @return mixed|SimpleXMLElement Either a named attribute or an element from a list of children
      */
     public function offsetGet ($offset) {
         return $this->element->attributes()->$offset;
@@ -130,15 +131,6 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
     }
 
     /**
-     * convert to xml string
-     * @param null $filename
-     * @return mixed
-     */
-    public function asXML ($filename = null) {
-        return $this->element->asXML();
-    }
-
-    /**
      * add child element
      * @param $name: name of chile
      * @param null $value: value of child
@@ -147,6 +139,15 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      */
     public function addChild ($name, $value = null, $namespace = null) {
         return $this->element->addChild($name, $value, $namespace);
+    }
+
+    /**
+     * convert to xml string
+     * @param null $filename
+     * @return mixed
+     */
+    public function asXML($filename = null) {
+        return $this->element->asXML();
     }
 
     /**

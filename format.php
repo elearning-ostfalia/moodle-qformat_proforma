@@ -71,7 +71,10 @@ class qformat_proforma extends qformat_default {
      */
     private $files = array();
 
-
+    /**
+     * @var bool flag indicates if it is checked that there is exactly one model solution
+     */
+    private $modelsolution_checked = false;
     /**
      * @var null model solution to be imported
      * (null if there are more than one model solutions available)
@@ -273,10 +276,6 @@ class qformat_proforma extends qformat_default {
         $oldbasename = $this->taskfilename;
         try {
             $version = $this->check_proforma_version($lines);
-            if (!$version) {
-                return false;
-            }
-
             $xmltask = new SimpleXMLElement($lines);
             unset($lines); // No need to keep this in memory.
 
@@ -597,7 +596,7 @@ class qformat_proforma extends qformat_default {
             $qo->attachments = 1;
         } else {
             // Text format => use editor and set mime type.
-            $qo->filetypes = 'text/plain';
+            $qo->filetypes = '';
             $qo->responseformat = 'editor';
             $qo->responsefieldlines = 15;
             $qo->attachments = 0;
@@ -707,7 +706,7 @@ class qformat_proforma extends qformat_default {
                 case 'edit':
                     // Handle code snippet for editor.
                     if (count($templates) === 0) {
-                        // first code snippet can be changed in question editor by teacher
+                        // First code snippet can be changed in question editor by teacher.
                         $this->store_download_file($content, $filename, $templates, $qo->template, $isembedded);
                         $qo->responsetemplate = $content;
                     } else {
@@ -733,7 +732,7 @@ class qformat_proforma extends qformat_default {
                     $this->store_download_file($content, $filename, $modelsolfiles, $qo->modelsol, $isembedded);
                 } else {
                     // More than one file belonging to model solution:
-                    // Do not store with filename and content
+                    // Do not store filename and content.
                     $qo->modelsolution = '';
                     $qo->responsefilename = '';
                 }
@@ -798,7 +797,7 @@ class qformat_proforma extends qformat_default {
             if (!isset($tasktest)) {
                 throw new Exception(get_string('inconsistenttest', 'qformat_proforma', $id));
             } else {
-                // merge test data into grading hints
+                // Merge test data into grading hints.
                 $test->addChild("title", (string) $tasktest->title);
                 $test->addChild("test-type", (string) $tasktest->{'test-type'});
                 if (count($tasktest->description) > 0) {
@@ -827,7 +826,7 @@ class qformat_proforma extends qformat_default {
         // Find extension.
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
         $isbinary = false;
-        if (strlen($extension) > 0) { // ignore files with no extension
+        if (strlen($extension) > 0) { // Ignore files with no extension.
             // Check extension for binary files.
             $binfile = array("zip", "gzip", "gz", "tar");
             if (in_array(strtolower($extension), $binfile)) {
@@ -860,7 +859,7 @@ class qformat_proforma extends qformat_default {
             case 1:
                 break;
             default:
-                // special handling for ProformaXMLElement class :-(
+                // Special handling for ProformaXMLElement class.
                 $modelsolution = $modelsolution[0];
                 break;
         }
@@ -893,7 +892,7 @@ class qformat_proforma extends qformat_default {
             $qo->responseformat = 'filepicker';
             $qo->filetypes = $extensions;
             if ($count == 0) {
-                // number of files (= count) must not be 0 when using filepicker.
+                // Number of files (= count) must not be 0 when using filepicker.
                 throw new coding_exception('number of attachments is 0 when using filepicker');
             }
             if ($count == 1) {
