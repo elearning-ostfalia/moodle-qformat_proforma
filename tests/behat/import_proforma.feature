@@ -70,8 +70,8 @@ Feature: IMPORT (ProFormA format)
     And following "de/ostfalia/zell/isPalindromTask/MyString.java" should download file with between "244" and "250" bytes
     # grader settings
     And I should see "javaTask2.zip"
-    # zip file cannot be downloaded that way anymore (filemanager). 
-    # But I do not know how.    
+    # zip file cannot be downloaded that way anymore (filemanager).
+    # But I do not know how.
     # And following "javaTask2.zip" should download file with between "1828" and "1829" bytes
     # multiline fields
     And the field "Response template" starts with "package de.ostfalia.zell.isPalindromTask;"
@@ -93,7 +93,6 @@ Feature: IMPORT (ProFormA format)
     And following "de/ostfalia/zell/isPalindromTask/MyStringTemplate.java" should download file with between "146" and "150" bytes
 
     And I switch to the main window
-
 
     # OK, let's switch from editor to filepicker
     When I choose "Edit question" action for "is palindrom" in the question bank
