@@ -15,12 +15,13 @@ Feature: IMPORT (ProFormA format)
     And the following "course enrolments" exist:
       | user     | course | role           |
       | teacher1 | C1     | editingteacher |
-    And I log in as "teacher1"
-    And I am on "Course 1" course homepage
+    # And I log in as "teacher1"
+    # And I am on "Course 1" course homepage
 
   @javascript @_file_upload
   Scenario: import Java question.
-    When I navigate to "Question bank > Import" in current page administration
+    When I am on the "Course 1" "core_question > course question import" page logged in as teacher1
+    # When I navigate to "Question bank > Import" in current page administration
     And I set the field "id_format_proforma" to "1"
     And I upload "question/format/proforma/tests/fixtures/javaTask2.zip" file to "Import" filemanager
     And I press "id_submitbutton"
@@ -79,8 +80,7 @@ Feature: IMPORT (ProFormA format)
     And I press "Cancel"
 
     # check for download link in "proforma-003"
-    When I choose "Preview" action for "is palindrom" in the question bank
-    And I switch to "questionpreview" window
+    When I am on the "is palindrom" "core_question > preview" page
     # check content of editor (response template)
     Then I should see "package de.ostfalia.zell.isPalindromTask;"
     Then I should see "palindrom.txt"
@@ -92,16 +92,26 @@ Feature: IMPORT (ProFormA format)
     And following "template.txt" should download file with between "137" and "150" bytes
     And following "de/ostfalia/zell/isPalindromTask/MyStringTemplate.java" should download file with between "146" and "150" bytes
 
-    And I switch to the main window
+  # same import, check filepicker parameters
+  @javascript @_file_upload
+  Scenario: import Java question.
+    When I am on the "Course 1" "core_question > course question import" page logged in as teacher1
+    And I set the field "id_format_proforma" to "1"
+    And I upload "question/format/proforma/tests/fixtures/javaTask2.zip" file to "Import" filemanager
+    And I press "id_submitbutton"
+    Then I should see "Parsing questions from import file."
+    And I should see "Importing 1 questions from file"
+    And I should see "1. checks whether a given string is a palindrom"
+    And I press "Continue"
+    And I should see "is palindrom"
 
-    # OK, let's switch from editor to filepicker
+    # switch from editor to filepicker
     When I choose "Edit question" action for "is palindrom" in the question bank
     And  I set the following fields to these values:
       | Response format          | filepicker                         |
     And I press "id_submitbutton"
 
-    When I choose "Preview" action for "is palindrom" in the question bank
-    And I switch to "questionpreview" window
+    When I open preview for "is palindrom" in the question bank
     # no editor
     Then I should not see "package de.ostfalia.zell.isPalindromTask;"
     Then I should see "palindrom.txt"
@@ -114,4 +124,4 @@ Feature: IMPORT (ProFormA format)
     And following "samples.txt" should download file with between "96" and "103" bytes
     And following "de/ostfalia/zell/isPalindromTask/MyStringTemplate.java" should download file with between "146" and "150" bytes
     # And following "template.txt" should download file with between "137" and "150" bytes
-    And I switch to the main window
+#    And I switch to the main window
