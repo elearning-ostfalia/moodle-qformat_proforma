@@ -116,8 +116,8 @@ class qformat_proforma_test extends question_testcase {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('Error importing question', $output);
-        $this->assertContains('The task file contains an unsupported ProFormA feature: embedded binary files', $output);
+        $this->assertStringContainsString('Error importing question', $output);
+        $this->assertStringContainsString('The task file contains an unsupported ProFormA feature: embedded binary files', $output);
 
         $this->assertEquals(false, $questions);
     }
@@ -139,8 +139,8 @@ class qformat_proforma_test extends question_testcase {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('Error importing question', $output);
-        $this->assertContains('The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported. Supported versions are', $output);
+        $this->assertStringContainsString('Error importing question', $output);
+        $this->assertStringContainsString('The task file does not contain a ProFormA task or the version of the ProFormA task is unsupported. Supported versions are', $output);
 
         $this->assertEquals(false, $questions);
     }
@@ -162,8 +162,8 @@ class qformat_proforma_test extends question_testcase {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('Error importing question', $output);
-        $this->assertContains('The task file does not contain valid xml.', $output);
+        $this->assertStringContainsString('Error importing question', $output);
+        $this->assertStringContainsString('The task file does not contain valid xml.', $output);
 
         $this->assertEquals(false, $questions);
     }
@@ -183,8 +183,8 @@ class qformat_proforma_test extends question_testcase {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('Error importing question', $output);
-        $this->assertContains('The file is not a ProFormA file (xml or zip).', $output);
+        $this->assertStringContainsString('Error importing question', $output);
+        $this->assertStringContainsString('The file is not a ProFormA file (xml or zip).', $output);
     }
 
     /**
@@ -201,8 +201,16 @@ class qformat_proforma_test extends question_testcase {
         $questions = $importer->readquestions($result);
         $this->assertEquals(2, count($questions));
 
-        $this->assert_java_task_1($questions[1]);
-        $this->assert_java_task_2($questions[0]);
+        // Moodle 3 and 4 seem to have different order of questions.
+        // This is not a problem but must be handled in tests.
+        if ($questions[1]->name == 'Sample Java Task') {
+            $this->assert_java_task_1($questions[1]);
+            $this->assert_java_task_2($questions[0]);
+        } else {
+            $this->assert_java_task_1($questions[0]);
+            $this->assert_java_task_2($questions[1]);
+
+        }
     }
 
     /**
@@ -222,8 +230,8 @@ class qformat_proforma_test extends question_testcase {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('Error importing question', $output);
-        $this->assertContains('File \'info.txt\' is referenced in task but is not attached', $output);
+        $this->assertStringContainsString('Error importing question', $output);
+        $this->assertStringContainsString('File \'info.txt\' is referenced in task but is not attached', $output);
 
         $this->assertEquals(1, count($questions));
 
@@ -246,8 +254,8 @@ class qformat_proforma_test extends question_testcase {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('Error importing question', $output);
-        $this->assertContains('File \'info.txt\' is referenced in task but is not attached', $output);
+        $this->assertStringContainsString('Error importing question', $output);
+        $this->assertStringContainsString('File \'info.txt\' is referenced in task but is not attached', $output);
 
         // No question  have been imported.
         $this->assertEquals(false, $questions);
@@ -401,8 +409,8 @@ public class MyString {
         ob_end_clean();
 
         // Check that there were some expected errors.
-        $this->assertContains('Task contains more than one model solution. None is imported!', $output);
-        $this->assertContains('Grading hints other than weighted sum are not supported.', $output);
+        $this->assertStringContainsString('Task contains more than one model solution. None is imported!', $output);
+        $this->assertStringContainsString('Grading hints other than weighted sum are not supported.', $output);
 
         $this->assertEquals(1, count($questions));
 
@@ -561,7 +569,7 @@ public class MyString {
         ob_end_clean();
 
         // complex grading hints
-        $this->assertContains('Grading hints other than weighted sum are not supported.', $output);
+        $this->assertStringContainsString('Grading hints other than weighted sum are not supported.', $output);
 
         $this->assertEquals(1, count($questions));
 

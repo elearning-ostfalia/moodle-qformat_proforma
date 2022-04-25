@@ -13,9 +13,8 @@
         stopOnFailure="false"
         stopOnIncomplete="false"
         stopOnSkipped="false"
-        printerClass="Hint_ResultPrinter"
-        testSuiteLoaderClass="phpunit_autoloader"
->
+        >
+        <!-- testSuiteLoaderClass="PHPUnit\Runner\StandardTestSuiteLoader" -->
 
 
     <testsuites>
