@@ -115,11 +115,9 @@ class qformat_proforma_test extends question_testcase {
         $output = ob_get_contents();
         ob_end_clean();
 
-        // Check that there were some expected errors.
-        $this->assertStringContainsString('Error importing question', $output);
-        $this->assertStringContainsString('The task file contains an unsupported ProFormA feature: embedded binary files', $output);
-
-        $this->assertEquals(false, $questions);
+        echo $output;
+        $this->assertNotEquals(false, $questions);
+        $this->assert_java_task_2($questions[0]);
     }
 
     /**

@@ -490,7 +490,8 @@ class qformat_proforma extends qformat_default {
      * @throws Exception
      * @throws coding_exception
      */
-    protected function store_download_file($content, $filename, &$list, &$draftitemid, $embedded) {
+    protected function store_download_file($content, $filename, &$list, &$draftitemid,
+                                           $embedded) {
         if ($filename == -1) {
             throw new coding_exception('cannot create temporary file because of missing filename');
         }
@@ -677,6 +678,7 @@ class qformat_proforma extends qformat_default {
             $content = 'TBD: EXTERN';
             $filename = '???';
             $isembedded = null;
+            // $base64 = false;
             $embedded = $file->{'embedded-txt-file'};
             if ($embedded) {
                 $isembedded = true;
@@ -685,16 +687,21 @@ class qformat_proforma extends qformat_default {
             } else {
                 $embedded = $file->{'embedded-bin-file'};
                 if ($embedded) {
-                    throw new Exception(get_string('notsupported', 'qformat_proforma') . 'embedded binary files');
-                }
-
-                $attached = $file->{'attached-bin-file'};
-                if (!$attached) {
-                    $attached = $file->{'attached-txt-file'};
-                }
-                if ($attached) {
-                    $isembedded = false;
-                    $filename = (string) $attached;
+                    $isembedded = true;
+                    $content = (string) $embedded;
+                    $content = base64_decode($content);
+                    // $base64 = true;
+                    $filename = (string) $embedded['filename'];
+                    // throw new Exception(get_string('notsupported', 'qformat_proforma') . 'embedded binary files');
+                } else {
+                    $attached = $file->{'attached-bin-file'};
+                    if (!$attached) {
+                        $attached = $file->{'attached-txt-file'};
+                    }
+                    if ($attached) {
+                        $isembedded = false;
+                        $filename = (string) $attached;
+                    }
                 }
                 // Todo: read content from attached file.
             }
