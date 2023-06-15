@@ -32,5 +32,5 @@ $plugin->release = '1.3.0';
 $plugin->maturity = MATURITY_STABLE;
 
 $plugin->dependencies = array(
-        'qtype_proforma' => 2020041700
+        'qtype_proforma' => 2023060200
 );
