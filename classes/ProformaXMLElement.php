@@ -41,7 +41,7 @@
  * @author     K.Borm <k.borm[at]ostfalia.de>
  */
 class ProformaXMLElement  /* extends SimpleXMLElement */
-        implements ArrayAccess, Countable, Iterator{
+        implements ArrayAccess, Countable, Iterator {
     /**  Simple XML element instance */
     private $element = null;
 
@@ -91,7 +91,7 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @return bool|void
      * @throws coding_exception
      */
-    public function offsetExists($offset) {
+    public function offsetExists($offset) : bool {
         throw new coding_exception('not implemented offsetExists');
     }
 
@@ -100,7 +100,7 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @param mixed $value
      * @throws coding_exception
      */
-    public function offsetSet($offset, $value) {
+    public function offsetSet($offset, $value) : void {
         throw new coding_exception('not implemented offsetSet');
     }
 
@@ -108,7 +108,7 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @param mixed $offset
      * @throws coding_exception
      */
-    public function offsetUnset($offset) {
+    public function offsetUnset($offset) : void {
         throw new coding_exception('not implemented offsetUnset');
     }
 
@@ -118,7 +118,7 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @param mixed $offset
      * @return mixed|SimpleXMLElement Either a named attribute or an element from a list of children
      */
-    public function offsetGet ($offset) {
+    public function offsetGet ($offset) : mixed {
         return $this->element->attributes()->$offset;
     }
 
@@ -126,7 +126,7 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * return number of elements
      * @return int
      */
-    public function count() {
+    public function count() : int {
         return count($this->element);
     }
 
@@ -162,14 +162,14 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * Iterator interface: return element at cursor position
      * @return mixed|ProformaXMLElement
      */
-    public function current() {
+    public function current() : mixed {
         return new ProformaXMLElement($this->cursor, $this->namespace);
     }
 
     /**
      * Iterator interface: increment cursor
      */
-    public function next() {
+    public function next() : void {
         $this->cursor = null;
     }
 
@@ -178,7 +178,7 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @return bool|float|int|string|void|null
      * @throws coding_exception
      */
-    public function key() {
+    public function key() : mixed {
         // TODO: Implement key() method.
         throw new coding_exception('not implemented key');
     }
@@ -187,14 +187,14 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * Iterator interface: is cursor valid?
      * @return bool
      */
-    public function valid() {
+    public function valid() : bool {
          return ($this->cursor != null);
     }
 
     /**
      * Iterator interface: reset cursor
      */
-    public function rewind() {
+    public function rewind() : void {
         $this->cursor = $this->element;
     }
 
