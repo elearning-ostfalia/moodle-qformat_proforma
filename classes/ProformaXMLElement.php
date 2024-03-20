@@ -118,7 +118,8 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @param mixed $offset
      * @return mixed|SimpleXMLElement Either a named attribute or an element from a list of children
      */
-    public function offsetGet ($offset) : mixed {
+    #[ReturnTypeWillChange]
+    public function offsetGet ($offset) {
         return $this->element->attributes()->$offset;
     }
 
@@ -162,7 +163,8 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * Iterator interface: return element at cursor position
      * @return mixed|ProformaXMLElement
      */
-    public function current() : mixed {
+    #[ReturnTypeWillChange]
+    public function current() {
         return new ProformaXMLElement($this->cursor, $this->namespace);
     }
 
@@ -178,7 +180,8 @@ class ProformaXMLElement  /* extends SimpleXMLElement */
      * @return bool|float|int|string|void|null
      * @throws coding_exception
      */
-    public function key() : mixed {
+    #[ReturnTypeWillChange]
+    public function key() {
         // TODO: Implement key() method.
         throw new coding_exception('not implemented key');
     }
