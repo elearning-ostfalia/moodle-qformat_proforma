@@ -39,7 +39,7 @@ require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
  * @copyright 2019 The Open University
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qformat_proforma_test extends question_testcase {
+class proformaformat_test extends question_testcase {
     /**
      * test preparation
      */

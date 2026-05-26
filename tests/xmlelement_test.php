@@ -37,7 +37,7 @@ require_once($CFG->dirroot . '/question/format/proforma/classes/ProformaXMLEleme
  * @copyright 2019 The Open University
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class proformaxmlelement_test extends question_testcase {
+class xmlelement_test extends question_testcase {
     private $testxml1 = '<?xml version="1.0"?>
 <p:task xmlns:p="urn:proforma:v2.0" lang="de" uuid="66646c04-cf6d-4b4e-aa2c-b2fdbe3f6035" 
                            xmlns:u="urn:proforma:tests:unittest:v1.0">
